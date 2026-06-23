@@ -1,6 +1,8 @@
 import type { ModeId } from '../types';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+// VITE_API_URL includes the `/api` suffix (e.g. https://be.<host>/api), matching
+// the convention used by the other API clients in this app.
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
 export interface CookSuggestion {
   transcript: string;
@@ -27,7 +29,7 @@ export async function askAssistant(
     form.append('sample_rate', String(input.sampleRate));
   }
 
-  const response = await fetch(`${API_URL}/api/assistant/cook`, {
+  const response = await fetch(`${API_URL}/assistant/cook`, {
     method: 'POST',
     body: form,
     signal: AbortSignal.timeout(40_000),
