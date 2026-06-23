@@ -43,6 +43,31 @@ export function StandbyGlyph({ className }: { className?: string }) {
   );
 }
 
+// WiFi arc glyph, bottom-left of the reference photos.
+export function WifiGlyph({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 28 24" className={className} aria-hidden>
+      <g fill="none" stroke={S} strokeWidth="2" strokeLinecap="round">
+        <path d="M4 9 a14 14 0 0 1 20 0" />
+        <path d="M8 13.5 a8 8 0 0 1 12 0" />
+      </g>
+      <circle cx="14" cy="19" r="1.8" fill={S} />
+    </svg>
+  );
+}
+
+// Small "connected appliance" stacked-rounds glyph next to the WiFi mark.
+export function GridGlyph({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden>
+      <g fill="none" stroke={S} strokeWidth="2">
+        <rect x="5" y="4" width="14" height="7" rx="2.5" />
+        <rect x="5" y="13" width="14" height="7" rx="2.5" />
+      </g>
+    </svg>
+  );
+}
+
 // Food-probe / pen glyph far right of the photo.
 export function ProbeGlyph({ className }: { className?: string }) {
   return (

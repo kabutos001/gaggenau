@@ -1,4 +1,10 @@
-import { SETTING_FUNCTIONS, TIMER_FUNCTIONS } from './constants';
+import {
+  MODES,
+  SETTING_FUNCTIONS,
+  TEMP_MAX,
+  TEMP_MIN,
+  TIMER_FUNCTIONS,
+} from './constants';
 import type { ButtonConfig, ButtonSlot, OvenState } from './types';
 
 export function formatClock(state: OvenState): string {
@@ -26,6 +32,42 @@ export function cookEndTime(state: OvenState): string {
   const [h, m] = state.clock.split(':').map(Number);
   const total = (h * 60 + m + state.cookDuration) % (24 * 60);
   return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+}
+
+// The bezel tick angle (deg, 0 = top) reflecting the screen's primary value,
+// swept across roughly -135°..+135° like a physical dial.
+export function knobAngle(state: OvenState): number {
+  const sweep = (frac: number) => -135 + Math.max(0, Math.min(1, frac)) * 270;
+  switch (state.screen) {
+    case 'operating':
+      if (state.temp === 0) return -135;
+      return sweep((state.temp - TEMP_MIN) / (TEMP_MAX - TEMP_MIN));
+    case 'timer': {
+      const fn = TIMER_FUNCTIONS[state.timerIndex].id;
+      if (fn === 'minuteMinder') return sweep(state.minuteMinder / 90);
+      if (fn === 'cookDuration') return sweep(state.cookDuration / 240);
+      return -135;
+    }
+    case 'settings':
+    case 'firstSettings':
+      return sweep(state.settingIndex / (SETTING_FUNCTIONS.length - 1));
+    default:
+      return -135;
+  }
+}
+
+// Small text shown inside the knob's glossy well. On the reference photos this
+// is a step counter ("5/7"); here we surface a compact, screen-relevant token.
+export function knobInner(state: OvenState): string | undefined {
+  switch (state.screen) {
+    case 'operating':
+      return `${state.modeIndex + 1}/${MODES.length}`;
+    case 'settings':
+    case 'firstSettings':
+      return `${state.settingIndex + 1}/${SETTING_FUNCTIONS.length}`;
+    default:
+      return undefined;
+  }
 }
 
 // Map the current screen → which icon/action each of the four buttons carries.

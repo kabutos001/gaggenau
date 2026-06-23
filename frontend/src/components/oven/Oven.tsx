@@ -3,47 +3,8 @@ import { useEffect, useReducer } from 'react';
 import AssistantOverlay from './assistant/AssistantOverlay';
 import { useAssistant } from './assistant/useAssistant';
 import { INITIAL_STATE } from './constants';
-import DisplayPanel from './DisplayPanel';
-import Knobs from './Knobs';
+import Fascia from './Fascia';
 import { ovenReducer } from './reducer';
-import type { Action, OvenState } from './types';
-
-// Child-lock + standby helper buttons live below the fascia so the demo is
-// fully clickable on a phone without the two physical rotary gestures.
-function Tray({ state, dispatch }: { state: OvenState; dispatch: (a: Action) => void }) {
-  return (
-    <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
-      <TrayBtn onClick={() => dispatch({ type: 'TEMP_OFF' })}>Aus / Stand-by</TrayBtn>
-      <TrayBtn
-        onClick={() => dispatch({ type: 'TOGGLE_LOCK' })}
-        disabled={!state.childLockAvailable}
-      >
-        {state.screen === 'locked' ? 'Entsperren' : 'Kindersicherung'}
-      </TrayBtn>
-    </div>
-  );
-}
-
-function TrayBtn({
-  children,
-  onClick,
-  disabled,
-}: {
-  children: React.ReactNode;
-  onClick: () => void;
-  disabled?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className="rounded-full border border-neutral-700 px-4 py-1.5 text-xs text-neutral-300 transition active:scale-95 disabled:opacity-30"
-    >
-      {children}
-    </button>
-  );
-}
 
 function MicIcon({ className }: { className?: string }) {
   return (
@@ -72,20 +33,9 @@ export default function Oven() {
   const assistantActive = assistant.state.phase !== 'idle';
 
   return (
-    <div className="flex min-h-dvh flex-col items-center justify-center bg-neutral-950 px-4 py-8">
-      {/* brushed-steel control fascia (manual p7) */}
-      <div
-        className="w-full max-w-md rounded-2xl p-5 pb-7"
-        style={{
-          background: 'linear-gradient(180deg, #d9dde1 0%, #b8bdc2 38%, #cfd4d8 100%)',
-          boxShadow: '0 18px 40px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.7)',
-        }}
-      >
-        <div className="mb-4 text-center text-[10px] font-semibold uppercase tracking-[0.4em] text-neutral-600">
-          Gaggenau
-        </div>
-
-        <DisplayPanel
+    <div className="flex min-h-dvh w-full items-center justify-center bg-black p-[1.5vh]">
+      <div className="relative w-full">
+        <Fascia
           state={state}
           dispatch={dispatch}
           overlay={
@@ -106,30 +56,19 @@ export default function Oven() {
           }
         />
 
-        <div className="mt-6">
-          <Knobs state={state} dispatch={dispatch} />
-        </div>
+        {/* Assistant trigger — the headline feature. Floats over the glass,
+            tucked into a corner so it reads as part of the appliance UI. */}
+        {!assistantActive && (
+          <button
+            type="button"
+            onClick={() => assistant.open()}
+            className="bg-lcd-heat absolute bottom-[8%] right-[5%] z-20 flex items-center gap-[1vh] rounded-full px-[2vh] py-[1.2vh] text-[clamp(10px,1.8vh,14px)] font-medium text-white shadow-lg transition active:scale-95"
+          >
+            <MicIcon className="h-[2.2vh] w-[2.2vh]" />
+            Was kochst du?
+          </button>
+        )}
       </div>
-
-      {/* Assistant trigger — the headline feature. Tap to tell the oven what
-          you're cooking; it suggests the program and you confirm. */}
-      <button
-        type="button"
-        onClick={() => !assistantActive && assistant.open()}
-        disabled={assistantActive}
-        className="mt-6 flex items-center gap-2.5 rounded-full bg-lcd-heat px-6 py-3 text-sm font-medium text-white shadow-lg transition active:scale-95 disabled:opacity-40"
-      >
-        <MicIcon className="h-5 w-5" />
-        Was kochst du?
-      </button>
-
-      <Tray state={state} dispatch={dispatch} />
-
-      <p className="mt-6 max-w-md text-center text-[11px] leading-relaxed text-neutral-600">
-        Tippe „Was kochst du?“ und sag, was es heute gibt — der Ofen schlägt das passende Programm
-        vor und du bestätigst. Oder bediene ihn klassisch: Display antippen, Wähler drehen,
-        Tasten für Timer- und Einstellungsmenü.
-      </p>
     </div>
   );
 }

@@ -1,41 +1,39 @@
 import { MODES, SETTING_FUNCTIONS, TIMER_FUNCTIONS } from '../constants';
-import { DoorGlyph, HeatUpGlyph, ProbeGlyph, StandbyGlyph } from '../glyphs/Icons';
+import { DoorGlyph, GridGlyph, ProbeGlyph, StandbyGlyph, WifiGlyph } from '../glyphs/Icons';
 import ModeGlyph from '../glyphs/ModeGlyph';
 import SevenSeg from '../SevenSeg';
 import type { Action, OvenState } from '../types';
 import { cookEndTime, formatClock, formatMinutes, formatSeconds } from '../utils';
 
-const TopBar = ({ children }: { children?: React.ReactNode }) => (
-  <div className="text-lcd-ink flex h-7 items-center justify-center px-3">{children}</div>
-);
+// Persistent connectivity marks, bottom-left of the glass on every screen.
+function ConnBadge() {
+  return (
+    <div className="text-lcd-ink/40 absolute bottom-[6%] left-[4%] flex items-end gap-[1.4vh]">
+      <WifiGlyph className="h-[3vh] w-[3vh]" />
+      <GridGlyph className="h-[2.6vh] w-[2.6vh]" />
+    </div>
+  );
+}
 
-// The scrolling icon row at the top of a menu (manual p10/p19): a strip of
-// small function icons with the active one boxed. Icons are tappable to jump
-// directly to a function.
-function MenuStrip({
-  icons,
-  active,
-  onSelect,
+// Small tappable corner icon (door, standby, info, timer…).
+function CornerIcon({
+  children,
+  onTap,
+  className,
 }: {
-  icons: string[];
-  active: number;
-  onSelect?: (i: number) => void;
+  children: React.ReactNode;
+  onTap?: () => void;
+  className?: string;
 }) {
   return (
-    <div className="flex items-center justify-center gap-0.75 pt-1">
-      {icons.map((label, i) => (
-        <button
-          type="button"
-          key={i}
-          onClick={() => onSelect?.(i)}
-          className={`flex h-5 min-w-5 items-center justify-center rounded-[3px] px-1 text-[10px] leading-none ${
-            i === active ? 'bg-lcd-ink/15 text-lcd-ink ring-lcd-ink/40 ring-1' : 'text-lcd-ink/40'
-          }`}
-        >
-          {label}
-        </button>
-      ))}
-    </div>
+    <button
+      type="button"
+      onClick={onTap}
+      disabled={!onTap}
+      className={`text-lcd-ink/70 active:text-lcd-ink absolute z-10 flex items-center justify-center transition disabled:opacity-100 ${className ?? ''}`}
+    >
+      {children}
+    </button>
   );
 }
 
@@ -47,74 +45,121 @@ export default function ScreenContent({
   dispatch: (a: Action) => void;
 }) {
   const mode = MODES[state.modeIndex];
-
-  // Tap a strip icon to jump to that function via repeated relative nav.
-  const jumpTimer = (i: number) => {
-    const d = i - state.timerIndex;
-    for (let k = 0; k < Math.abs(d); k++) dispatch({ type: 'TIMER_NAV', dir: d > 0 ? 1 : -1 });
-  };
-  const jumpSetting = (i: number) => {
-    const d = i - state.settingIndex;
-    for (let k = 0; k < Math.abs(d); k++) dispatch({ type: 'SETTINGS_NAV', dir: d > 0 ? 1 : -1 });
-  };
   const unit = state.celsius ? '°C' : '°F';
   const toDisp = (c: number) => (state.celsius ? c : Math.round((c * 9) / 5 + 32));
 
   switch (state.screen) {
     case 'standby':
       return (
-        <div className="flex h-full flex-col">
-          <div className="flex-1" />
-          <div className="flex items-center justify-center">
-            <SevenSeg value={formatClock(state)} className="text-5xl" />
+        <div className="relative h-full w-full">
+          {/* GAGGENAU wordmark sits centred-high, knob is dark below it */}
+          <div className="absolute inset-x-0 top-[16%] flex flex-col items-center gap-[1vh]">
+            <span className="text-lcd-ink/85 text-[clamp(14px,3.4vh,26px)] font-light uppercase tracking-[0.45em]">
+              Gaggenau
+            </span>
+            <SevenSeg value={formatClock(state)} className="text-[clamp(16px,3.6vh,28px)]" />
           </div>
-          <div className="flex-1" />
+          <ConnBadge />
         </div>
       );
 
     case 'locked':
       return (
-        <div className="flex h-full flex-col items-center justify-center gap-1">
-          <SevenSeg value={formatClock(state)} className="text-4xl" />
-          <span className="text-lcd-ink/60 text-[11px] tracking-wide">Kindersicherung aktiv</span>
+        <div className="relative h-full w-full">
+          <div className="absolute inset-x-0 top-[20%] flex flex-col items-center gap-[1vh]">
+            <SevenSeg value={formatClock(state)} className="text-[clamp(20px,5vh,40px)]" />
+            <span className="text-lcd-ink/55 text-[clamp(10px,1.8vh,13px)] tracking-wide">
+              Kindersicherung aktiv
+            </span>
+          </div>
+          <CornerIcon
+            onTap={() => dispatch({ type: 'TOGGLE_LOCK' })}
+            className="right-[4%] top-[8%]"
+          >
+            <span className="text-[clamp(10px,1.8vh,13px)]">Entsperren</span>
+          </CornerIcon>
+          <ConnBadge />
         </div>
       );
 
     case 'operating':
       return (
-        <div className="flex h-full flex-col">
-          <TopBar>
-            <StandbyGlyph className="text-lcd-ink/35 absolute left-3 h-5 w-5" />
-            <SevenSeg value={formatClock(state)} className="text-base" />
-            <DoorGlyph className="text-lcd-ink/60 absolute right-3 h-5 w-5" />
-          </TopBar>
-          <div className="flex flex-1 items-center justify-center gap-3 px-4">
-            <ModeGlyph mode={mode.id} className="text-lcd-ink/85 h-12 w-12" />
-            <div className="flex items-start">
-              <SevenSeg value={String(toDisp(state.temp))} className="text-[68px] leading-none" />
-              <span className="text-lcd-ink/80 mt-2 ml-1 text-lg">{unit}</span>
-            </div>
-            <div className="flex w-12 flex-col items-center gap-2">
-              {state.heating ? <HeatUpGlyph className="h-7 w-10" /> : <span className="h-7 w-10" />}
-              <ProbeGlyph className="text-lcd-ink/45 h-5 w-7" />
-            </div>
+        <div className="relative h-full w-full">
+          {/* big set-temperature, upper-left */}
+          <div className="absolute left-[6%] top-[14%] flex items-start">
+            <SevenSeg value={String(toDisp(state.temp))} className="text-[clamp(28px,8vh,64px)]" />
+            <span className="text-lcd-ink/75 mt-[0.6vh] ml-[0.4vh] text-[clamp(10px,2.4vh,20px)]">
+              °
+            </span>
           </div>
-          <div className="text-lcd-ink/55 h-7 px-3 text-center text-[11px]">{mode.label}</div>
+
+          {/* mode glyph, upper-centre */}
+          <div className="absolute left-1/2 top-[12%] flex -translate-x-1/2 flex-col items-center gap-[0.6vh]">
+            <ModeGlyph mode={mode.id} className="text-lcd-ink/90 h-[6.5vh] w-[6.5vh]" />
+            <span className="text-lcd-ink/55 max-w-[26vh] text-center text-[clamp(9px,1.7vh,12px)] leading-tight">
+              {mode.label}
+            </span>
+          </div>
+
+          {/* probe + door, upper-right */}
+          <div className="absolute right-[5%] top-[14%] flex items-center gap-[2vh]">
+            <ProbeGlyph className="text-lcd-ink/45 h-[3vh] w-[4vh]" />
+            <CornerIcon
+              onTap={() => dispatch({ type: 'OPEN_SETTINGS' })}
+              className="relative right-auto top-auto"
+            >
+              <DoorGlyph className="h-[3.4vh] w-[3.4vh]" />
+            </CornerIcon>
+          </div>
+
+          {/* orange start/heat triangle on the right edge */}
+          <button
+            type="button"
+            aria-label="Start"
+            onClick={() => dispatch({ type: 'CYCLE_MODE', dir: 1 })}
+            className="absolute right-[3%] top-1/2 z-10 -translate-y-1/2"
+          >
+            <svg viewBox="0 0 24 24" className="h-[4vh] w-[4vh]">
+              <path d="M7 4 l13 8 -13 8 z" fill="var(--color-lcd-heat)" />
+            </svg>
+          </button>
+
+          {/* timer + info, lower-left near the badge */}
+          <CornerIcon onTap={() => dispatch({ type: 'OPEN_TIMER' })} className="bottom-[7%] right-[6%]">
+            <svg viewBox="0 0 24 24" className="h-[3.4vh] w-[3.4vh]" fill="none">
+              <circle cx="12" cy="13" r="8" stroke="currentColor" strokeWidth="2" />
+              <path
+                d="M12 8 v5 l4 2"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </CornerIcon>
+          <ConnBadge />
         </div>
       );
 
     case 'info':
       return (
-        <div className="flex h-full flex-col">
-          <TopBar />
-          <div className="flex flex-1 items-center justify-center">
-            <SevenSeg
-              value={String(toDisp(state.currentTemp))}
-              className="text-[64px] leading-none"
-            />
-            <span className="text-lcd-ink/80 mt-2 ml-1 text-lg">{unit}</span>
+        <div className="relative h-full w-full">
+          <div className="absolute inset-x-0 top-[14%] flex flex-col items-center">
+            <div className="flex items-start">
+              <SevenSeg
+                value={String(toDisp(state.currentTemp))}
+                className="text-[clamp(28px,8vh,60px)]"
+              />
+              <span className="text-lcd-ink/75 mt-[0.6vh] ml-[0.4vh] text-[clamp(10px,2.4vh,20px)]">
+                {unit}
+              </span>
+            </div>
+            <span className="text-lcd-ink/55 text-[clamp(9px,1.8vh,13px)]">Aktuelle Temperatur</span>
           </div>
-          <div className="text-lcd-ink/55 h-7 text-center text-[11px]">Aktuelle Temperatur</div>
+          <CornerIcon onTap={() => dispatch({ type: 'BACK' })} className="right-[4%] top-[8%]">
+            <StandbyGlyph className="h-[3.4vh] w-[3.4vh]" />
+          </CornerIcon>
+          <ConnBadge />
         </div>
       );
 
@@ -124,30 +169,40 @@ export default function ScreenContent({
       let caption = '';
       if (fn.id === 'minuteMinder') {
         big = formatMinutes(state.minuteMinder);
-        caption = 'min';
+        caption = 'Kurzzeit-Wecker';
       } else if (fn.id === 'stopwatch') {
         big = formatSeconds(state.stopwatch);
-        caption = state.stopwatchRunning ? 'läuft' : 'min:sek';
+        caption = state.stopwatchRunning ? 'Stoppuhr · läuft' : 'Stoppuhr';
       } else if (fn.id === 'cookDuration') {
         big = formatMinutes(state.cookDuration);
-        caption = 'std:min';
+        caption = 'Garzeit-Dauer';
       } else {
         big = cookEndTime(state);
-        caption = 'Ende';
+        caption = 'Garzeit-Ende';
       }
       return (
-        <div className="flex h-full flex-col">
-          <MenuStrip
-            icons={['⏲', '⏱', '⌛', '⏰']}
-            active={state.timerIndex}
-            onSelect={jumpTimer}
-          />
-          <div className="flex flex-1 items-center justify-center">
-            <SevenSeg value={big} className="text-5xl" />
+        <div className="relative h-full w-full">
+          <div className="absolute inset-x-0 top-[10%] flex flex-col items-center gap-[0.6vh]">
+            <span className="text-lcd-ink/55 text-[clamp(9px,1.8vh,13px)]">{caption}</span>
+            <SevenSeg value={big} className="text-[clamp(24px,7vh,52px)]" />
           </div>
-          <div className="text-lcd-ink/55 h-6 text-center text-[11px]">
-            {fn.label} · {caption}
-          </div>
+          {/* prev / next function arrows along the top */}
+          <CornerIcon
+            onTap={() => dispatch({ type: 'TIMER_NAV', dir: -1 })}
+            className="left-[5%] top-1/2 -translate-y-1/2"
+          >
+            <Chevron dir="left" />
+          </CornerIcon>
+          <CornerIcon
+            onTap={() => dispatch({ type: 'TIMER_NAV', dir: 1 })}
+            className="right-[5%] top-1/2 -translate-y-1/2"
+          >
+            <Chevron dir="right" />
+          </CornerIcon>
+          <CornerIcon onTap={() => dispatch({ type: 'BACK' })} className="right-[4%] top-[8%]">
+            <StandbyGlyph className="h-[3.4vh] w-[3.4vh]" />
+          </CornerIcon>
+          <ConnBadge />
         </div>
       );
     }
@@ -158,25 +213,50 @@ export default function ScreenContent({
       let big = '';
       let caption = fn.label;
       if (fn.id === 'clock') big = formatClock(state);
-      else if (fn.id === 'timeFormat') big = state.use24h ? '24:00' : '12 AM';
+      else if (fn.id === 'timeFormat') big = state.use24h ? '24H' : '12H';
       else if (fn.id === 'tempUnit') big = state.celsius ? '°C' : '°F';
       else if (fn.id === 'childLock') {
         big = state.childLockAvailable ? 'ON' : 'OFF';
-        caption = 'Taste Kindersicherung';
+        caption = 'Kindersicherung';
       } else big = 'OFF';
       return (
-        <div className="flex h-full flex-col">
-          <MenuStrip
-            icons={['🕐', 'HM', '°', '🔒', '◌']}
-            active={state.settingIndex}
-            onSelect={jumpSetting}
-          />
-          <div className="flex flex-1 items-center justify-center">
-            <SevenSeg value={big} className="text-5xl" />
+        <div className="relative h-full w-full">
+          <div className="absolute inset-x-0 top-[10%] flex flex-col items-center gap-[0.6vh]">
+            <span className="text-lcd-ink/55 text-[clamp(9px,1.8vh,13px)]">{caption}</span>
+            <SevenSeg value={big} className="text-[clamp(24px,7vh,52px)]" />
           </div>
-          <div className="text-lcd-ink/55 h-6 text-center text-[11px]">{caption}</div>
+          <CornerIcon
+            onTap={() => dispatch({ type: 'SETTINGS_NAV', dir: -1 })}
+            className="left-[5%] top-1/2 -translate-y-1/2"
+          >
+            <Chevron dir="left" />
+          </CornerIcon>
+          <CornerIcon
+            onTap={() => dispatch({ type: 'SETTINGS_NAV', dir: 1 })}
+            className="right-[5%] top-1/2 -translate-y-1/2"
+          >
+            <Chevron dir="right" />
+          </CornerIcon>
+          <CornerIcon onTap={() => dispatch({ type: 'BACK' })} className="right-[4%] top-[8%]">
+            <StandbyGlyph className="h-[3.4vh] w-[3.4vh]" />
+          </CornerIcon>
+          <ConnBadge />
         </div>
       );
     }
   }
+}
+
+function Chevron({ dir }: { dir: 'left' | 'right' }) {
+  return (
+    <svg viewBox="0 0 24 24" className="h-[3.6vh] w-[3.6vh]" fill="none">
+      <polyline
+        points={dir === 'left' ? '15,5 8,12 15,19' : '9,5 16,12 9,19'}
+        stroke="currentColor"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
 }
