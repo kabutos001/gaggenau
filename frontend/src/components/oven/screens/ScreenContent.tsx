@@ -9,8 +9,8 @@ import { cookEndTime, formatClock, formatMinutes, formatSeconds } from '../utils
 function ConnBadge() {
   return (
     <div className="text-lcd-ink/40 absolute bottom-[6%] left-[4%] flex items-end gap-[1.8vh]">
-      <WifiGlyph className="h-[4vh] w-[4vh]" />
-      <GridGlyph className="h-[3.6vh] w-[3.6vh]" />
+      <WifiGlyph className="h-[9vh] w-[10vh]" />
+      <GridGlyph className="h-[8vh] w-[8vh]" />
     </div>
   );
 }
@@ -30,7 +30,7 @@ function CornerIcon({
       type="button"
       onClick={onTap}
       disabled={!onTap}
-      className={`text-lcd-ink/70 active:text-lcd-ink absolute z-10 flex items-center justify-center transition disabled:opacity-100 ${className ?? ''}`}
+      className={`text-lcd-ink/70 active:text-lcd-ink absolute z-10 flex min-h-[8vh] min-w-[8vh] items-center justify-center transition disabled:opacity-100 ${className ?? ''}`}
     >
       {children}
     </button>
@@ -54,10 +54,10 @@ export default function ScreenContent({
         <div className="relative h-full w-full">
           {/* GAGGENAU wordmark sits centred-high, knob is dark below it */}
           <div className="absolute inset-x-0 top-[16%] flex flex-col items-center gap-[1vh]">
-            <span className="text-lcd-ink/85 text-[clamp(14px,3.4vh,26px)] font-light uppercase tracking-[0.45em]">
+            <span className="text-lcd-ink/85 text-[clamp(18px,4.4vh,34px)] font-light uppercase tracking-[0.45em]">
               Gaggenau
             </span>
-            <SevenSeg value={formatClock(state)} className="text-[clamp(16px,3.6vh,28px)]" />
+            <SevenSeg value={formatClock(state)} className="text-[clamp(20px,4.6vh,48px)]" />
           </div>
           <ConnBadge />
         </div>
@@ -67,8 +67,8 @@ export default function ScreenContent({
       return (
         <div className="relative h-full w-full">
           <div className="absolute inset-x-0 top-[20%] flex flex-col items-center gap-[1vh]">
-            <SevenSeg value={formatClock(state)} className="text-[clamp(20px,5vh,40px)]" />
-            <span className="text-lcd-ink/55 text-[clamp(10px,1.8vh,13px)] tracking-wide">
+            <SevenSeg value={formatClock(state)} className="text-[clamp(26px,6.2vh,50px)]" />
+            <span className="text-lcd-ink/55 text-[clamp(12px,2.2vh,16px)] tracking-wide">
               Kindersicherung aktiv
             </span>
           </div>
@@ -76,7 +76,7 @@ export default function ScreenContent({
             onTap={() => dispatch({ type: 'TOGGLE_LOCK' })}
             className="right-[4%] top-[8%]"
           >
-            <span className="text-[clamp(10px,1.8vh,13px)]">Entsperren</span>
+            <span className="text-[clamp(12px,2.2vh,16px)]">Entsperren</span>
           </CornerIcon>
           <ConnBadge />
         </div>
@@ -86,29 +86,29 @@ export default function ScreenContent({
       return (
         <div className="relative h-full w-full">
           {/* big set-temperature, upper-left */}
-          <div className="absolute left-[6%] top-[14%] flex items-start">
-            <SevenSeg value={String(toDisp(state.temp))} className="text-[clamp(28px,8vh,64px)]" />
-            <span className="text-lcd-ink/75 mt-[0.6vh] ml-[0.4vh] text-[clamp(10px,2.4vh,20px)]">
+          <div className="absolute left-[6%] top-[13%] flex items-start">
+            <SevenSeg value={String(toDisp(state.temp))} className="text-[clamp(36px,10vh,80px)]" />
+            <span className="text-lcd-ink/75 mt-[0.6vh] ml-[0.4vh] text-[clamp(43px,43vh,46px)]">
               °
             </span>
           </div>
 
           {/* mode glyph, upper-centre */}
-          <div className="absolute left-1/2 top-[12%] flex -translate-x-1/2 flex-col items-center gap-[0.6vh]">
-            <ModeGlyph mode={mode.id} className="text-lcd-ink/90 h-[6.5vh] w-[6.5vh]" />
-            <span className="text-lcd-ink/55 max-w-[26vh] text-center text-[clamp(9px,1.7vh,12px)] leading-tight">
+          <div className="absolute left-1/2 top-[11%] flex -translate-x-1/2 flex-col items-center gap-[0.8vh]">
+            <ModeGlyph mode={mode.id} className="text-lcd-ink/90 h-[12vh] w-[10vh]" />
+            <span className="text-lcd-ink/55 max-w-[32vh] text-center text-[clamp(11px,2.1vh,15px)] leading-tight">
               {mode.label}
             </span>
           </div>
 
           {/* probe + door, upper-right */}
-          <div className="absolute right-[5%] top-[14%] flex items-center gap-[2.6vh]">
-            <ProbeGlyph className="text-lcd-ink/45 h-[4vh] w-[5.4vh]" />
+          <div className="absolute right-[5%] top-[13%] flex items-center gap-[2.6vh]">
+            <ProbeGlyph className="text-lcd-ink/45 h-[9vh] w-[9vh]" />
             <CornerIcon
               onTap={() => dispatch({ type: 'OPEN_SETTINGS' })}
               className="relative right-auto top-auto"
             >
-              <DoorGlyph className="h-[4.6vh] w-[4.6vh]" />
+              <DoorGlyph className="h-[9vh] w-[9vh]" />
             </CornerIcon>
           </div>
 
@@ -117,16 +117,16 @@ export default function ScreenContent({
             type="button"
             aria-label="Start"
             onClick={() => dispatch({ type: 'CYCLE_MODE', dir: 1 })}
-            className="absolute right-[3%] top-1/2 z-10 -translate-y-1/2"
+            className="absolute right-[2%] top-1/2 z-10 flex min-h-[10vh] min-w-[8vh] -translate-y-1/2 items-center justify-center"
           >
-            <svg viewBox="0 0 24 24" className="h-[5.4vh] w-[5.4vh]">
+            <svg viewBox="0 0 24 24" className="h-[7vh] w-[7vh]">
               <path d="M7 4 l13 8 -13 8 z" fill="var(--color-lcd-heat)" />
             </svg>
           </button>
 
           {/* timer + info, lower-left near the badge */}
-          <CornerIcon onTap={() => dispatch({ type: 'OPEN_TIMER' })} className="bottom-[7%] right-[6%]">
-            <svg viewBox="0 0 24 24" className="h-[4.6vh] w-[4.6vh]" fill="none">
+          <CornerIcon onTap={() => dispatch({ type: 'OPEN_TIMER' })} className="bottom-[6%] right-[5%]">
+            <svg viewBox="0 0 24 24" className="h-[10vh] w-[10vh]" fill="none">
               <circle cx="12" cy="13" r="8" stroke="currentColor" strokeWidth="2" />
               <path
                 d="M12 8 v5 l4 2"
@@ -148,16 +148,16 @@ export default function ScreenContent({
             <div className="flex items-start">
               <SevenSeg
                 value={String(toDisp(state.currentTemp))}
-                className="text-[clamp(28px,8vh,60px)]"
+                className="text-[clamp(36px,10vh,76px)]"
               />
-              <span className="text-lcd-ink/75 mt-[0.6vh] ml-[0.4vh] text-[clamp(10px,2.4vh,20px)]">
+              <span className="text-lcd-ink/75 mt-[0.6vh] ml-[0.4vh] text-[clamp(13px,3vh,26px)]">
                 {unit}
               </span>
             </div>
-            <span className="text-lcd-ink/55 text-[clamp(9px,1.8vh,13px)]">Aktuelle Temperatur</span>
+            <span className="text-lcd-ink/55 text-[clamp(11px,2.2vh,16px)]">Aktuelle Temperatur</span>
           </div>
           <CornerIcon onTap={() => dispatch({ type: 'BACK' })} className="right-[4%] top-[8%]">
-            <StandbyGlyph className="h-[4.6vh] w-[4.6vh]" />
+            <StandbyGlyph className="h-[10vh] w-[10vh]" />
           </CornerIcon>
           <ConnBadge />
         </div>
@@ -183,8 +183,8 @@ export default function ScreenContent({
       return (
         <div className="relative h-full w-full">
           <div className="absolute inset-x-0 top-[10%] flex flex-col items-center gap-[0.6vh]">
-            <span className="text-lcd-ink/55 text-[clamp(9px,1.8vh,13px)]">{caption}</span>
-            <SevenSeg value={big} className="text-[clamp(24px,7vh,52px)]" />
+            <span className="text-lcd-ink/55 text-[clamp(11px,2.2vh,16px)]">{caption}</span>
+            <SevenSeg value={big} className="text-[clamp(30px,8.6vh,64px)]" />
           </div>
           {/* prev / next function arrows along the top */}
           <CornerIcon
@@ -200,7 +200,7 @@ export default function ScreenContent({
             <Chevron dir="right" />
           </CornerIcon>
           <CornerIcon onTap={() => dispatch({ type: 'BACK' })} className="right-[4%] top-[8%]">
-            <StandbyGlyph className="h-[4.6vh] w-[4.6vh]" />
+            <StandbyGlyph className="h-[5.8vh] w-[5.8vh]" />
           </CornerIcon>
           <ConnBadge />
         </div>
@@ -222,8 +222,8 @@ export default function ScreenContent({
       return (
         <div className="relative h-full w-full">
           <div className="absolute inset-x-0 top-[10%] flex flex-col items-center gap-[0.6vh]">
-            <span className="text-lcd-ink/55 text-[clamp(9px,1.8vh,13px)]">{caption}</span>
-            <SevenSeg value={big} className="text-[clamp(24px,7vh,52px)]" />
+            <span className="text-lcd-ink/55 text-[clamp(11px,2.2vh,16px)]">{caption}</span>
+            <SevenSeg value={big} className="text-[clamp(30px,8.6vh,64px)]" />
           </div>
           <CornerIcon
             onTap={() => dispatch({ type: 'SETTINGS_NAV', dir: -1 })}
@@ -238,7 +238,7 @@ export default function ScreenContent({
             <Chevron dir="right" />
           </CornerIcon>
           <CornerIcon onTap={() => dispatch({ type: 'BACK' })} className="right-[4%] top-[8%]">
-            <StandbyGlyph className="h-[4.6vh] w-[4.6vh]" />
+            <StandbyGlyph className="h-[5.8vh] w-[5.8vh]" />
           </CornerIcon>
           <ConnBadge />
         </div>
@@ -249,7 +249,7 @@ export default function ScreenContent({
 
 function Chevron({ dir }: { dir: 'left' | 'right' }) {
   return (
-    <svg viewBox="0 0 24 24" className="h-[3.6vh] w-[3.6vh]" fill="none">
+    <svg viewBox="0 0 24 24" className="h-[4.8vh] w-[4.8vh]" fill="none">
       <polyline
         points={dir === 'left' ? '15,5 8,12 15,19' : '9,5 16,12 9,19'}
         stroke="currentColor"

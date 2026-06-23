@@ -68,7 +68,7 @@ export default function Fascia({ state, dispatch, overlay }: Props) {
 
   return (
     <div
-      className="brushed-steel relative flex aspect-16/7 w-full max-w-[min(100vw,177vh)] items-center justify-center overflow-hidden rounded-[14px] p-[1.6vh] shadow-[0_24px_60px_rgba(0,0,0,0.7)]"
+      className="brushed-steel relative flex h-full w-full items-center justify-center overflow-hidden rounded-[18px] p-[1.4vh] shadow-[0_24px_60px_rgba(0,0,0,0.7)]"
     >
       {/* the black glass panel */}
       <div

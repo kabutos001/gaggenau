@@ -29,8 +29,8 @@ export default function Oven() {
   const assistantActive = assistant.state.phase !== 'idle';
 
   return (
-    <div className="flex min-h-dvh w-full items-center justify-center bg-black p-[1.5vh]">
-      <div className="relative w-full">
+    <div className="flex h-dvh w-full items-center justify-center bg-black">
+      <div className="relative h-full w-full">
         <Fascia
           state={state}
           dispatch={dispatch}
@@ -57,15 +57,15 @@ export default function Oven() {
             Sits in the bottom-right of the glass but lifted clear of the
             per-screen timer/info control that lives in the very corner. */}
         {!assistantActive && (
-          <div className="absolute bottom-[7%] right-[15%] z-20 flex items-center justify-center">
+          <div className="absolute bottom-[7%] right-[13%] z-20 flex items-center justify-center">
             <span className="pointer-events-none absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-20" />
             <button
               type="button"
               onClick={() => assistant.startRecording()}
               aria-label="Was kochst du? — Mikrofon starten"
-              className="relative z-10 flex h-[10vh] w-[10vh] items-center justify-center rounded-full bg-red-500 text-white shadow-[0_0_0_1px_rgba(255,255,255,0.08),0_2px_10px_rgba(0,0,0,0.45)] transition hover:bg-red-600 active:scale-95"
+              className="relative z-10 flex h-[17vh] w-[17vh] items-center justify-center rounded-full bg-red-500 text-white shadow-[0_0_0_1px_rgba(255,255,255,0.08),0_2px_10px_rgba(0,0,0,0.45)] transition hover:bg-red-600 active:scale-95"
             >
-              <MicIcon className="h-[5vh] w-[5vh]" />
+              <MicIcon className="h-[6.5vh] w-[6.5vh]" />
             </button>
           </div>
         )}
