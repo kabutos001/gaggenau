@@ -23,9 +23,11 @@ const TAP_SLOP = 6;
 // touch and scroll-wheel all drive it.
 export default function CenterKnob({ angle, onStep, onPress, inner }: Props) {
   const ringRef = useRef<HTMLDivElement>(null);
+  const tickRef = useRef<HTMLDivElement>(null);
   const drag = useRef({
     active: false,
     last: 0, // last pointer angle (deg)
+    live: 0, // visual rotation that tracks the finger 1:1
     accum: 0, // rotation banked toward the next detent
     moved: 0, // total absolute rotation, to tell a turn from a tap
   });
@@ -42,7 +44,15 @@ export default function CenterKnob({ angle, onStep, onPress, inner }: Props) {
   };
 
   const begin = (clientX: number, clientY: number) => {
-    drag.current = { active: true, last: pointerAngle(clientX, clientY), accum: 0, moved: 0 };
+    drag.current = {
+      active: true,
+      last: pointerAngle(clientX, clientY),
+      live: angle, // start the live rotation where the value currently points
+      accum: 0,
+      moved: 0,
+    };
+    // Drop the settle transition so the ring follows the finger with no lag.
+    if (tickRef.current) tickRef.current.style.transition = 'none';
   };
 
   const move = (clientX: number, clientY: number) => {
@@ -56,6 +66,11 @@ export default function CenterKnob({ angle, onStep, onPress, inner }: Props) {
     d.accum += delta;
     d.moved += Math.abs(delta);
 
+    // Track the finger exactly: rotate the tick by the raw drag, imperatively
+    // (no React render, no transition) so it stays under the finger.
+    d.live += delta;
+    if (tickRef.current) tickRef.current.style.transform = `rotate(${d.live}deg)`;
+
     while (Math.abs(d.accum) >= STEP) {
       const dir = d.accum > 0 ? 1 : -1;
       d.accum -= dir * STEP;
@@ -67,6 +82,13 @@ export default function CenterKnob({ angle, onStep, onPress, inner }: Props) {
     const d = drag.current;
     if (d.active && d.moved < TAP_SLOP) onPress();
     d.active = false;
+    // Hand control back to the value-driven angle, easing into its detent.
+    // Set it explicitly (not '') so it's correct even when the last drag was
+    // under one detent and triggered no re-render.
+    if (tickRef.current) {
+      tickRef.current.style.transition = '';
+      tickRef.current.style.transform = `rotate(${angle}deg)`;
+    }
   };
 
   return (
@@ -82,11 +104,18 @@ export default function CenterKnob({ angle, onStep, onPress, inner }: Props) {
         onPointerUp={end}
         onPointerCancel={() => {
           drag.current.active = false;
+          if (tickRef.current) {
+            tickRef.current.style.transition = '';
+            tickRef.current.style.transform = `rotate(${angle}deg)`;
+          }
         }}
         onWheel={(e) => onStep(e.deltaY > 0 ? 1 : -1)}
       >
-        {/* orbiting position tick on the bezel */}
+        {/* orbiting position tick on the bezel. While idle it follows `angle`
+            (the value) with a soft settle; during a drag `move` overrides the
+            transform imperatively so it tracks the finger 1:1. */}
         <div
+          ref={tickRef}
           className="pointer-events-none absolute inset-0 transition-transform duration-150"
           style={{ transform: `rotate(${angle}deg)`, transformOrigin: '50% 50%' }}
         >
