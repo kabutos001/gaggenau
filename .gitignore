@@ -48,3 +48,5 @@ postgres-data/
 *.db
 *.sqlite
 *.sqlite3
+
+prompts/

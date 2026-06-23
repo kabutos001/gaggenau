@@ -1,8 +1,19 @@
 import type { ModeId } from '../types';
 
-// VITE_API_URL includes the `/api` suffix (e.g. https://be.<host>/api), matching
-// the convention used by the other API clients in this app.
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+import { AudioQueue } from './audio';
+
+// Resolve the API base, tolerating a VITE_API_URL with or without the `/api`
+// suffix (docker-compose has historically set it both ways). Mirrors the
+// normalizer in team-members.ts so the two clients agree.
+const RAW_API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const API_URL = (() => {
+  const trimmed = RAW_API_URL.replace(/\/$/, '');
+  return trimmed.endsWith('/api') ? trimmed : `${trimmed}/api`;
+})();
+
+// The WebSocket URL for the streaming voice path: same host as API_URL, with
+// http(s) → ws(s).
+const WS_URL = `${API_URL.replace(/^http/, 'ws')}/assistant/cook_ws`;
 
 export interface CookSuggestion {
   transcript: string;
@@ -11,6 +22,8 @@ export interface CookSuggestion {
   temp_c: number;
   rationale: string;
   dish: string;
+  /** base64 PCM (24 kHz mono int16) of the spoken reply; empty on typed input. */
+  reply_audio_b64?: string;
 }
 
 // Send recorded audio (or a typed transcript) to the assistant and get back a
@@ -40,4 +53,80 @@ export async function askAssistant(
     throw new Error(err.detail ?? 'Assistant request failed');
   }
   return response.json() as Promise<CookSuggestion>;
+}
+
+export interface StreamCallbacks {
+  /** Fired when the first reply-audio frame starts playing. */
+  onSpeakingStart?: () => void;
+  /** Fired once the spoken reply has finished playing out. */
+  onSpeakingEnd?: () => void;
+}
+
+// Streaming voice path (WebSocket). Sends the recorded blob, plays the spoken
+// reply frame-by-frame as it streams back (so it starts in a few seconds, not
+// after the whole clip), and resolves with the program suggestion. Lower
+// latency than askAssistant's buffered POST.
+export function streamAssistant(
+  input: { audio: ArrayBuffer; sampleRate: number },
+  cb: StreamCallbacks = {}
+): Promise<CookSuggestion> {
+  return new Promise((resolve, reject) => {
+    const ws = new WebSocket(WS_URL);
+    ws.binaryType = 'arraybuffer';
+
+    const queue = new AudioQueue();
+    let started = false;
+    let settled = false;
+
+    queue.onDrained = () => cb.onSpeakingEnd?.();
+
+    const fail = (msg: string) => {
+      if (settled) return;
+      settled = true;
+      queue.close();
+      try {
+        ws.close();
+      } catch {
+        /* already closing */
+      }
+      reject(new Error(msg));
+    };
+
+    const timeout = setTimeout(() => fail('Assistant timed out'), 45_000);
+
+    ws.onopen = () => {
+      ws.send(JSON.stringify({ sample_rate: input.sampleRate }));
+      ws.send(input.audio);
+      ws.send(JSON.stringify({ end: true }));
+    };
+
+    ws.onmessage = (e) => {
+      if (e.data instanceof ArrayBuffer) {
+        // A reply-audio frame — start the "speaking" signal on the first one.
+        if (!started) {
+          started = true;
+          cb.onSpeakingStart?.();
+        }
+        queue.enqueue(e.data);
+        return;
+      }
+      // Otherwise a JSON control message.
+      const msg = JSON.parse(e.data as string);
+      if (msg.type === 'error') {
+        fail(msg.detail ?? 'Assistant error');
+      } else if (msg.type === 'suggestion') {
+        clearTimeout(timeout);
+        settled = true;
+        // Let any buffered audio finish; tell the queue no more is coming.
+        queue.finish();
+        resolve(msg as CookSuggestion);
+      }
+    };
+
+    ws.onerror = () => fail('Connection failed');
+    ws.onclose = () => {
+      clearTimeout(timeout);
+      if (!settled) fail('Connection closed before a suggestion arrived');
+    };
+  });
 }

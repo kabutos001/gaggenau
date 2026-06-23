@@ -7,7 +7,6 @@ import type { AssistantState } from './useAssistant';
 interface Props {
   state: AssistantState;
   celsius: boolean;
-  onStartRecording: () => void;
   onStopAndAsk: () => void;
   onAskText: (t: string) => void;
   onConfirm: (modeId: ModeId, temp: number) => void;
@@ -20,7 +19,6 @@ const toDisp = (c: number, celsius: boolean) =>
 export default function AssistantOverlay({
   state,
   celsius,
-  onStartRecording,
   onStopAndAsk,
   onAskText,
   onConfirm,
@@ -54,7 +52,7 @@ export default function AssistantOverlay({
         <button
           type="submit"
           disabled={!typed.trim()}
-          className="rounded-full bg-lcd-heat px-5 py-1.5 text-xs font-medium text-white active:scale-95 disabled:opacity-40"
+          className="rounded-full bg-red-500 px-5 py-1.5 text-xs font-medium text-white hover:bg-red-600 active:scale-95 disabled:opacity-40"
         >
           {submitLabel}
         </button>
@@ -64,25 +62,6 @@ export default function AssistantOverlay({
 
   return (
     <div className="text-lcd-ink absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-[#1c2228]/95 px-5 text-center backdrop-blur-sm">
-      {state.phase === 'prompt' && (
-        <>
-          <p className="text-sm text-lcd-ink/85">Was kochst du heute?</p>
-          <button
-            type="button"
-            onClick={onStartRecording}
-            className="flex items-center gap-2 rounded-full bg-lcd-heat px-5 py-2 text-xs font-medium text-white active:scale-95"
-          >
-            Sprechen
-          </button>
-          <div className="flex w-full items-center gap-2 text-[10px] text-lcd-ink/35">
-            <span className="h-px flex-1 bg-lcd-ink/20" />
-            oder tippen
-            <span className="h-px flex-1 bg-lcd-ink/20" />
-          </div>
-          {textForm('Fragen')}
-        </>
-      )}
-
       {state.phase === 'recording' && (
         <>
           <Listening />
@@ -101,7 +80,7 @@ export default function AssistantOverlay({
             <button
               type="button"
               onClick={onStopAndAsk}
-              className="rounded-full bg-lcd-heat px-5 py-1.5 text-xs font-medium text-white active:scale-95"
+              className="rounded-full bg-red-500 px-5 py-1.5 text-xs font-medium text-white hover:bg-red-600 active:scale-95"
             >
               Fertig
             </button>
@@ -134,11 +113,12 @@ export default function AssistantOverlay({
                 {celsius ? '°C' : '°F'}
               </div>
             </div>
+            {state.speaking && <Speaking />}
           </div>
-          {state.suggestion.rationale && (
-            <p className="max-w-[92%] text-[11px] leading-snug text-lcd-ink/65">
-              {state.suggestion.rationale}
-            </p>
+          {/* The Sous-Chef answer is spoken, not written — the user listens.
+              While it speaks we show a calm hint instead of the reply text. */}
+          {state.speaking && (
+            <p className="text-lcd-ink/50 text-[11px] tracking-wide">Sous-Chef spricht …</p>
           )}
           <div className="mt-1 flex gap-2">
             <button
@@ -154,7 +134,7 @@ export default function AssistantOverlay({
                 state.suggestion &&
                 onConfirm(state.suggestion.mode_id, state.suggestion.temp_c)
               }
-              className="rounded-full bg-lcd-heat px-5 py-1.5 text-xs font-medium text-white active:scale-95"
+              className="rounded-full bg-red-500 px-5 py-1.5 text-xs font-medium text-white hover:bg-red-600 active:scale-95"
             >
               Übernehmen
             </button>
@@ -164,10 +144,29 @@ export default function AssistantOverlay({
 
       {state.phase === 'error' && (
         <>
-          <p className="max-w-[90%] text-sm text-lcd-heat">{state.error}</p>
+          <p className="max-w-[90%] text-sm text-red-500">{state.error}</p>
           {textForm('Erneut fragen')}
         </>
       )}
+    </div>
+  );
+}
+
+// Small "the device is talking" meter shown next to the suggestion while the
+// spoken reply plays.
+function Speaking() {
+  return (
+    <div className="flex h-5 items-center gap-0.5" aria-label="spricht">
+      {[0, 1, 2].map((i) => (
+        <span
+          key={i}
+          className="bg-lcd-ink/70 w-0.5 rounded-full"
+          style={{
+            height: '100%',
+            animation: `assistant-bar 0.8s ease-in-out ${i * 0.15}s infinite`,
+          }}
+        />
+      ))}
     </div>
   );
 }
@@ -178,7 +177,7 @@ function Listening() {
       {[0, 1, 2, 3, 4].map((i) => (
         <span
           key={i}
-          className="w-1 rounded-full bg-lcd-heat"
+          className="w-1 rounded-full bg-red-500"
           style={{
             height: '100%',
             animation: `assistant-bar 0.9s ease-in-out ${i * 0.12}s infinite`,

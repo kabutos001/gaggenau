@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 # Configure logging *before* the router imports so our module loggers (e.g. the
 # assistant router) emit to stdout — uvicorn sets up its own handlers but not
-# the app's loggers. Matches the batch25 reference's pattern.
+# the app's loggers.
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)s %(name)s: %(message)s",

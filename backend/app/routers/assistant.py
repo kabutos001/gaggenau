@@ -9,10 +9,20 @@ No auth, no persistence — this is a prototype side-feature.
 """
 
 import asyncio
+import base64
 import json
 import logging
+from pathlib import Path
 
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from fastapi import (
+    APIRouter,
+    File,
+    Form,
+    HTTPException,
+    UploadFile,
+    WebSocket,
+    WebSocketDisconnect,
+)
 from google import genai
 from google.genai import types
 from pydantic import BaseModel
@@ -23,11 +33,20 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/assistant", tags=["assistant"])
 
-# Gemini Live transcribes the recorded blob; the flash text model selects the
-# program. Mirrors the reference stack (batch25 tactic_toaster).
+# Gemini Live both transcribes the recorded blob AND speaks the Sous-Chef reply;
+# the flash text model selects the program in parallel.
 LIVE_MODEL = "models/gemini-3.1-flash-live-preview"
 TEXT_MODEL = "gemini-2.5-flash"
 INPUT_SAMPLE_RATE = 16000
+# The Live API returns 24 kHz mono int16 PCM; the frontend plays it at this rate.
+OUTPUT_SAMPLE_RATE = 24000
+# A calm, low voice fits the "discreet luxury Sous-Chef" persona.
+VOICE_NAME = "Charon"
+
+# The spoken Sous-Chef persona/system prompt, authored in souschef.txt so it can
+# be edited without touching code. Loaded once at import.
+_PROMPT_PATH = Path(__file__).resolve().parent.parent / "prompts" / "souschef.txt"
+SOUSCHEF_PROMPT = _PROMPT_PATH.read_text(encoding="utf-8").strip()
 
 # Operating-mode catalogue — ground truth from the BO 210/211 manual
 # (Betriebsarten p9 + Back-/Brattabelle). `id` matches the frontend ModeId so
@@ -117,7 +136,12 @@ SELECT_INSTRUCTION = (
 
 
 class CookSuggestion(BaseModel):
-    """Structured program suggestion returned to the LCD."""
+    """Structured program suggestion returned to the LCD.
+
+    The device talks back via `reply_audio_b64` (the spoken Sous-Chef answer)
+    while simultaneously offering the program the user can confirm
+    (mode_id/temp_c). The user listens — there is no on-screen reply text.
+    """
 
     transcript: str
     mode_id: str
@@ -125,6 +149,9 @@ class CookSuggestion(BaseModel):
     temp_c: int
     rationale: str
     dish: str
+    # The spoken Sous-Chef reply as base64 PCM @ OUTPUT_SAMPLE_RATE. Empty on
+    # the typed path (no input audio → no spoken reply).
+    reply_audio_b64: str = ""
 
 
 # Schema the model must fill (German field semantics kept in English for the UI).
@@ -146,35 +173,49 @@ _RESPONSE_SCHEMA = {
 }
 
 
-async def _transcribe(
-    client: genai.Client, audio_bytes: bytes, sample_rate: int
-) -> str:
-    """Transcribe a recorded PCM blob via the Live API (bracketed PTT turn).
+def _speak_config() -> types.LiveConnectConfig:
+    """Live API config for one push-to-talk Sous-Chef turn.
 
-    Workaround: the live model only supports AUDIO output (TEXT raises a 1007
-    "modality not supported"). We must request AUDIO and then read the
-    `input_transcription` field — that's what actually gives us the user's
-    words. The model's audio reply is generated but discarded; we only want
-    the transcript here. (Same trick as the batch25 reference stack.)
+    AUDIO out + a prebuilt voice so the device speaks; input transcription so we
+    still get the user's words; a sliding context window per the reference. VAD
+    is DISABLED: we send one finished blob bracketed by explicit
+    activity_start/activity_end. With auto-VAD on, the server ignores our
+    activity_end and waits for speech to "end" naturally on a blob that never
+    streams more — so turn_complete never arrives and the turn hangs to timeout
+    (verified: 40s TimeoutError). Disabling VAD makes our markers authoritative.
     """
-    # Disable automatic VAD: we send a single pre-recorded blob bracketed by
-    # explicit activity_start/activity_end markers. With auto-VAD left on, the
-    # server ignores our activity_end and keeps waiting for speech to "end"
-    # naturally — which never happens on a finished blob, so no turn_complete
-    # ever arrives and the turn hangs until timeout (observed: frames arrive
-    # empty, then silence). Disabling VAD makes our markers authoritative.
-    config = types.LiveConnectConfig(
+    return types.LiveConnectConfig(
         response_modalities=["AUDIO"],
+        system_instruction=SOUSCHEF_PROMPT,
         input_audio_transcription=types.AudioTranscriptionConfig(),
+        output_audio_transcription=types.AudioTranscriptionConfig(),
+        speech_config=types.SpeechConfig(
+            voice_config=types.VoiceConfig(
+                prebuilt_voice_config=types.PrebuiltVoiceConfig(voice_name=VOICE_NAME)
+            )
+        ),
+        context_window_compression=types.ContextWindowCompressionConfig(
+            sliding_window=types.SlidingWindow(),
+        ),
         realtime_input_config=types.RealtimeInputConfig(
             automatic_activity_detection=types.AutomaticActivityDetection(disabled=True)
         ),
     )
+
+
+async def _speak_turn(
+    client: genai.Client, audio_bytes: bytes, sample_rate: int
+) -> tuple[str, bytes]:
+    """One Live turn over a recorded PCM blob (buffered; used by POST /cook).
+
+    Returns (user_transcript, reply_audio_bytes). The Live model takes the
+    user's audio, transcribes it (input_transcription), and speaks the
+    Sous-Chef answer back (we collect the reply audio frames). The persona comes
+    from SOUSCHEF_PROMPT.
+    """
+    config = _speak_config()
     transcript = ""
-    # The Live API streams its (discarded) audio reply in many small frames;
-    # we only want the input transcript. Tally the discarded chunks for one
-    # summary line at the end rather than logging per frame.
-    audio_chunks = 0
+    audio_chunks: list[bytes] = []
     async with client.aio.live.connect(model=LIVE_MODEL, config=config) as session:
         await session.send_realtime_input(activity_start=types.ActivityStart())
         await session.send_realtime_input(
@@ -184,31 +225,28 @@ async def _transcribe(
         )
         await session.send_realtime_input(activity_end=types.ActivityEnd())
 
+        # Run the turn to turn_complete so the WHOLE spoken reply arrives — the
+        # audio streams in many frames after the input transcript.
         async for response in session.receive():
             sc = response.server_content
             if not sc:
                 continue
-            if getattr(response, "data", None):
-                audio_chunks += 1
+            if response.data:
+                audio_chunks.append(response.data)
             it = getattr(sc, "input_transcription", None)
             if it and getattr(it, "text", None):
                 transcript += it.text
-            # We only need the input transcript. Once the model starts its
-            # reply (generation_complete) or the turn ends, the transcript is
-            # final — stop instead of waiting for the whole audio answer, which
-            # can run past the request timeout.
-            if getattr(sc, "generation_complete", False) and transcript:
-                break
             if getattr(sc, "turn_complete", False):
                 break
+
+    audio = b"".join(audio_chunks)
     logger.info(
-        "[assistant] transcribed %d bytes @ %d Hz — %r (%d audio chunks discarded)",
-        len(audio_bytes),
-        sample_rate,
+        "[assistant] _speak_turn DONE — user: %r | %d B audio (%d frames)",
         transcript[:80],
-        audio_chunks,
+        len(audio),
+        len(audio_chunks),
     )
-    return transcript.strip()
+    return transcript.strip(), audio
 
 
 def _select_program(client: genai.Client, transcript: str) -> dict[str, object]:
@@ -227,9 +265,28 @@ def _select_program(client: genai.Client, transcript: str) -> dict[str, object]:
             response_mime_type="application/json",
             response_schema=_RESPONSE_SCHEMA,
             temperature=0.4,
+            # Disable thinking: this is a tiny constrained classification, and
+            # the default thinking budget was adding ~5s for no quality gain.
+            thinking_config=types.ThinkingConfig(thinking_budget=0),
         ),
     )
     return json.loads(result.text or "{}")
+
+
+def _finalize_program(chosen: dict[str, object]) -> tuple[str, str, int, str, str]:
+    """Validate + clamp a raw selection into (mode_id, label, temp, rationale, dish)."""
+    mode_id = str(chosen.get("mode_id", ""))
+    if mode_id not in _VALID_IDS:
+        mode_id = "top-bottom"  # safe default (Ober- und Unterhitze)
+    label = next(p["label"] for p in PROGRAMS if p["id"] == mode_id)
+    temp = max(50, min(300, int(chosen.get("temp_c") or 180)))
+    return (
+        mode_id,
+        str(label),
+        temp,
+        str(chosen.get("rationale", "")),
+        str(chosen.get("dish", "")),
+    )
 
 
 @router.post("/cook", response_model=CookSuggestion)
@@ -250,21 +307,26 @@ async def cook(
     client = genai.Client(api_key=settings.gemini_api_key)
 
     said = (transcript or "").strip()
+    reply_audio = b""
+
     if not said:
+        # Voice path: one Live turn transcribes the audio AND speaks the reply.
         audio_bytes = await audio.read()
         if not audio_bytes:
             raise HTTPException(
                 status_code=400, detail="No audio or transcript provided"
             )
         try:
-            said = await asyncio.wait_for(
-                _transcribe(client, audio_bytes, sample_rate), timeout=30.0
+            said, reply_audio = await asyncio.wait_for(
+                _speak_turn(client, audio_bytes, sample_rate), timeout=40.0
             )
         except Exception as exc:  # noqa: BLE001 — surface any failure as 502
-            logger.exception("transcription failed")
+            logger.exception("live turn failed")
             raise HTTPException(
                 status_code=502, detail="Could not transcribe audio"
             ) from exc
+    # Typed path: no input audio to feed the Live API → no spoken reply. We
+    # still pick and offer the program for confirmation.
 
     if not said:
         raise HTTPException(status_code=422, detail="Could not make out what you said")
@@ -275,19 +337,168 @@ async def cook(
         logger.exception("program selection failed")
         raise HTTPException(status_code=502, detail="Assistant is unavailable") from exc
 
-    mode_id = str(chosen.get("mode_id", ""))
-    if mode_id not in _VALID_IDS:
-        mode_id = "top-bottom"  # safe default (Ober- und Unterhitze)
-    label = next(p["label"] for p in PROGRAMS if p["id"] == mode_id)
-    temp = int(chosen.get("temp_c") or 180)
-    temp = max(50, min(300, temp))
+    mode_id, label, temp, rationale, dish = _finalize_program(chosen)
 
-    logger.info("[assistant] %r → %s @ %d°C", said[:60], mode_id, temp)
+    logger.info(
+        "[assistant] %r → %s @ %d°C (%d bytes reply audio)",
+        said[:60],
+        mode_id,
+        temp,
+        len(reply_audio),
+    )
     return CookSuggestion(
         transcript=said,
         mode_id=mode_id,
-        mode_label=str(label),
+        mode_label=label,
         temp_c=temp,
-        rationale=str(chosen.get("rationale", "")),
-        dish=str(chosen.get("dish", "")),
+        rationale=rationale,
+        dish=dish,
+        reply_audio_b64=base64.b64encode(reply_audio).decode() if reply_audio else "",
     )
+
+
+@router.websocket("/cook_ws")
+async def cook_ws(websocket: WebSocket) -> None:
+    """Streaming voice → program. Lower latency than POST /cook.
+
+    Protocol (one push-to-talk turn):
+      client → init JSON  {"sample_rate": 16000}
+      client → one binary message: the recorded mono int16 PCM blob
+      client → JSON {"end": true}
+      server → binary frames: the spoken reply audio (24 kHz PCM) as it streams
+      server → JSON {"type": "suggestion", ...CookSuggestion}
+      server closes.
+
+    Streaming the reply frames means playback can start within a few seconds
+    instead of after the whole clip is buffered, and the program selection runs
+    concurrently so it adds no extra wait.
+    """
+    await websocket.accept()
+
+    if not settings.gemini_api_key:
+        await websocket.send_json(
+            {"type": "error", "detail": "GEMINI_API_KEY not configured"}
+        )
+        await websocket.close()
+        return
+
+    try:
+        init = await websocket.receive_json()
+    except Exception:
+        await websocket.close(code=1003)
+        return
+    sample_rate = int(init.get("sample_rate") or INPUT_SAMPLE_RATE)
+
+    # Collect the recorded blob (sent as one or more binary messages, ended by
+    # a small JSON sentinel).
+    audio_buf = bytearray()
+    try:
+        while True:
+            msg = await websocket.receive()
+            if msg.get("type") == "websocket.disconnect":
+                return
+            if msg.get("bytes") is not None:
+                audio_buf.extend(msg["bytes"])
+            elif msg.get("text"):
+                data = json.loads(msg["text"])
+                if data.get("end"):
+                    break
+    except WebSocketDisconnect:
+        return
+
+    if not audio_buf:
+        await websocket.send_json({"type": "error", "detail": "No audio received"})
+        await websocket.close()
+        return
+
+    client = genai.Client(api_key=settings.gemini_api_key)
+    config = _speak_config()
+
+    transcript = ""
+    audio_frames = 0
+    select_task: asyncio.Task[dict[str, object]] | None = None
+
+    logger.info("[assistant:ws] turn — %d B audio @ %d Hz", len(audio_buf), sample_rate)
+    try:
+        async with client.aio.live.connect(model=LIVE_MODEL, config=config) as session:
+            await session.send_realtime_input(activity_start=types.ActivityStart())
+            await session.send_realtime_input(
+                audio=types.Blob(
+                    data=bytes(audio_buf), mime_type=f"audio/pcm;rate={sample_rate}"
+                )
+            )
+            await session.send_realtime_input(activity_end=types.ActivityEnd())
+
+            async for response in session.receive():
+                sc = response.server_content
+                if not sc:
+                    continue
+                # Relay reply audio to the client the instant it arrives.
+                if response.data:
+                    audio_frames += 1
+                    await websocket.send_bytes(response.data)
+                it = getattr(sc, "input_transcription", None)
+                if it and getattr(it, "text", None):
+                    transcript += it.text
+                    # As soon as we have the user's words, start picking the
+                    # program in parallel with the still-streaming audio.
+                    if select_task is None and transcript.strip():
+                        select_task = asyncio.create_task(
+                            asyncio.to_thread(
+                                _select_program, client, transcript.strip()
+                            )
+                        )
+                if getattr(sc, "turn_complete", False):
+                    break
+    except Exception:  # noqa: BLE001
+        logger.exception("[assistant:ws] live turn failed")
+        await websocket.send_json(
+            {"type": "error", "detail": "Could not transcribe audio"}
+        )
+        await websocket.close()
+        return
+
+    said = transcript.strip()
+    if not said:
+        await websocket.send_json(
+            {"type": "error", "detail": "Could not make out what you said"}
+        )
+        await websocket.close()
+        return
+
+    # Selection may already be running; if the transcript never triggered it
+    # (race), run it now.
+    if select_task is None:
+        select_task = asyncio.create_task(
+            asyncio.to_thread(_select_program, client, said)
+        )
+    try:
+        chosen = await select_task
+    except Exception:  # noqa: BLE001
+        logger.exception("[assistant:ws] program selection failed")
+        await websocket.send_json(
+            {"type": "error", "detail": "Assistant is unavailable"}
+        )
+        await websocket.close()
+        return
+
+    mode_id, label, temp, rationale, dish = _finalize_program(chosen)
+    logger.info(
+        "[assistant:ws] %r → %s @ %d°C (%d audio frames streamed)",
+        said[:60],
+        mode_id,
+        temp,
+        audio_frames,
+    )
+    await websocket.send_json(
+        {
+            "type": "suggestion",
+            "transcript": said,
+            "mode_id": mode_id,
+            "mode_label": label,
+            "temp_c": temp,
+            "rationale": rationale,
+            "dish": dish,
+        }
+    )
+    await websocket.close()

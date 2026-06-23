@@ -1,11 +1,10 @@
 import { useCallback, useRef, useState } from 'react';
 
-import { askAssistant, type CookSuggestion } from './api';
+import { askAssistant, streamAssistant, type CookSuggestion } from './api';
 import { startPcmCapture, type PcmCapture } from './audio';
 
 export type AssistantPhase =
   | 'idle'
-  | 'prompt' // choose: speak or type
   | 'recording'
   | 'thinking'
   | 'suggestion'
@@ -15,9 +14,16 @@ export interface AssistantState {
   phase: AssistantPhase;
   suggestion: CookSuggestion | null;
   error: string | null;
+  /** True while the spoken reply is playing through the speaker. */
+  speaking: boolean;
 }
 
-const INITIAL: AssistantState = { phase: 'idle', suggestion: null, error: null };
+const INITIAL: AssistantState = {
+  phase: 'idle',
+  suggestion: null,
+  error: null,
+  speaking: false,
+};
 
 export function useAssistant() {
   const [state, setState] = useState<AssistantState>(INITIAL);
@@ -29,49 +35,74 @@ export function useAssistant() {
     setState(INITIAL);
   }, []);
 
-  // Open the prompt panel (offers speak or type).
-  const open = useCallback(() => {
-    setState({ phase: 'prompt', suggestion: null, error: null });
-  }, []);
-
+  // Hot mic: invoked straight from the trigger button, so it starts capturing
+  // immediately. Falls back to the typed-input panel (error phase) if the mic
+  // is unavailable.
   const startRecording = useCallback(async () => {
     try {
       captureRef.current = await startPcmCapture();
-      setState({ phase: 'recording', suggestion: null, error: null });
+      setState({ phase: 'recording', suggestion: null, error: null, speaking: false });
     } catch {
       setState({
         phase: 'error',
         suggestion: null,
         error: 'Mikrofon nicht verfügbar — tippe deinen Wunsch ein.',
+        speaking: false,
       });
     }
   }, []);
 
-  const run = useCallback(async (input: { audio: ArrayBuffer; sampleRate: number } | { transcript: string }) => {
-    setState({ phase: 'thinking', suggestion: null, error: null });
-    try {
-      const suggestion = await askAssistant(input);
-      setState({ phase: 'suggestion', suggestion, error: null });
-    } catch (e) {
-      setState({
-        phase: 'error',
-        suggestion: null,
-        error: e instanceof Error ? e.message : 'Etwas ist schiefgelaufen.',
-      });
-    }
+  const fail = useCallback((e: unknown) => {
+    setState({
+      phase: 'error',
+      suggestion: null,
+      error: e instanceof Error ? e.message : 'Etwas ist schiefgelaufen.',
+      speaking: false,
+    });
   }, []);
 
-  // Stop recording and send the captured audio for a suggestion.
+  // Stop recording and stream the captured audio. The spoken reply plays back
+  // frame-by-frame as it arrives (low latency); the program suggestion appears
+  // for confirmation as soon as it's ready.
   const stopAndAsk = useCallback(async () => {
     const cap = captureRef.current;
     captureRef.current = null;
     if (!cap) return;
     const { pcm, sampleRate } = cap.stop();
-    await run({ audio: pcm, sampleRate });
-  }, [run]);
+    setState({ phase: 'thinking', suggestion: null, error: null, speaking: false });
+    try {
+      const suggestion = await streamAssistant(
+        { audio: pcm, sampleRate },
+        {
+          onSpeakingStart: () =>
+            setState((s) => (s.phase !== 'error' ? { ...s, speaking: true } : s)),
+          onSpeakingEnd: () => setState((s) => ({ ...s, speaking: false })),
+        }
+      );
+      setState((s) => ({
+        ...s,
+        phase: 'suggestion',
+        suggestion,
+        error: null,
+      }));
+    } catch (e) {
+      fail(e);
+    }
+  }, [fail]);
 
-  // Typed fallback (no mic).
-  const askText = useCallback((transcript: string) => run({ transcript }), [run]);
+  // Typed fallback (no mic): buffered POST, program suggestion only (no audio).
+  const askText = useCallback(
+    async (transcript: string) => {
+      setState({ phase: 'thinking', suggestion: null, error: null, speaking: false });
+      try {
+        const suggestion = await askAssistant({ transcript });
+        setState({ phase: 'suggestion', suggestion, error: null, speaking: false });
+      } catch (e) {
+        fail(e);
+      }
+    },
+    [fail]
+  );
 
-  return { state, open, startRecording, stopAndAsk, askText, reset };
+  return { state, startRecording, stopAndAsk, askText, reset };
 }
