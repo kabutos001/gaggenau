@@ -33,6 +33,22 @@
   --font-seg: 'DSEG7', 'Courier New', monospace;
 }
 
+/* This is a touchscreen-appliance mockup, not a document: a long-press or drag
+   shouldn't select text or flash the blue tap-highlight. Disable both globally,
+   then re-enable selection where typing genuinely needs it (inputs/textareas). */
+* {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+input,
+textarea,
+[contenteditable] {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
 /* Assistant listening meter — bars pulse while recording. */
 @keyframes assistant-bar {
   0%,

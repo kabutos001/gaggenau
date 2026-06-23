@@ -8,9 +8,9 @@ import { cookEndTime, formatClock, formatMinutes, formatSeconds } from '../utils
 // Persistent connectivity marks, bottom-left of the glass on every screen.
 function ConnBadge() {
   return (
-    <div className="text-lcd-ink/40 absolute bottom-[6%] left-[4%] flex items-end gap-[1.4vh]">
-      <WifiGlyph className="h-[3vh] w-[3vh]" />
-      <GridGlyph className="h-[2.6vh] w-[2.6vh]" />
+    <div className="text-lcd-ink/40 absolute bottom-[6%] left-[4%] flex items-end gap-[1.8vh]">
+      <WifiGlyph className="h-[4vh] w-[4vh]" />
+      <GridGlyph className="h-[3.6vh] w-[3.6vh]" />
     </div>
   );
 }
@@ -102,13 +102,13 @@ export default function ScreenContent({
           </div>
 
           {/* probe + door, upper-right */}
-          <div className="absolute right-[5%] top-[14%] flex items-center gap-[2vh]">
-            <ProbeGlyph className="text-lcd-ink/45 h-[3vh] w-[4vh]" />
+          <div className="absolute right-[5%] top-[14%] flex items-center gap-[2.6vh]">
+            <ProbeGlyph className="text-lcd-ink/45 h-[4vh] w-[5.4vh]" />
             <CornerIcon
               onTap={() => dispatch({ type: 'OPEN_SETTINGS' })}
               className="relative right-auto top-auto"
             >
-              <DoorGlyph className="h-[3.4vh] w-[3.4vh]" />
+              <DoorGlyph className="h-[4.6vh] w-[4.6vh]" />
             </CornerIcon>
           </div>
 
@@ -119,14 +119,14 @@ export default function ScreenContent({
             onClick={() => dispatch({ type: 'CYCLE_MODE', dir: 1 })}
             className="absolute right-[3%] top-1/2 z-10 -translate-y-1/2"
           >
-            <svg viewBox="0 0 24 24" className="h-[4vh] w-[4vh]">
+            <svg viewBox="0 0 24 24" className="h-[5.4vh] w-[5.4vh]">
               <path d="M7 4 l13 8 -13 8 z" fill="var(--color-lcd-heat)" />
             </svg>
           </button>
 
           {/* timer + info, lower-left near the badge */}
           <CornerIcon onTap={() => dispatch({ type: 'OPEN_TIMER' })} className="bottom-[7%] right-[6%]">
-            <svg viewBox="0 0 24 24" className="h-[3.4vh] w-[3.4vh]" fill="none">
+            <svg viewBox="0 0 24 24" className="h-[4.6vh] w-[4.6vh]" fill="none">
               <circle cx="12" cy="13" r="8" stroke="currentColor" strokeWidth="2" />
               <path
                 d="M12 8 v5 l4 2"
@@ -157,7 +157,7 @@ export default function ScreenContent({
             <span className="text-lcd-ink/55 text-[clamp(9px,1.8vh,13px)]">Aktuelle Temperatur</span>
           </div>
           <CornerIcon onTap={() => dispatch({ type: 'BACK' })} className="right-[4%] top-[8%]">
-            <StandbyGlyph className="h-[3.4vh] w-[3.4vh]" />
+            <StandbyGlyph className="h-[4.6vh] w-[4.6vh]" />
           </CornerIcon>
           <ConnBadge />
         </div>
@@ -200,7 +200,7 @@ export default function ScreenContent({
             <Chevron dir="right" />
           </CornerIcon>
           <CornerIcon onTap={() => dispatch({ type: 'BACK' })} className="right-[4%] top-[8%]">
-            <StandbyGlyph className="h-[3.4vh] w-[3.4vh]" />
+            <StandbyGlyph className="h-[4.6vh] w-[4.6vh]" />
           </CornerIcon>
           <ConnBadge />
         </div>
@@ -238,7 +238,7 @@ export default function ScreenContent({
             <Chevron dir="right" />
           </CornerIcon>
           <CornerIcon onTap={() => dispatch({ type: 'BACK' })} className="right-[4%] top-[8%]">
-            <StandbyGlyph className="h-[3.4vh] w-[3.4vh]" />
+            <StandbyGlyph className="h-[4.6vh] w-[4.6vh]" />
           </CornerIcon>
           <ConnBadge />
         </div>

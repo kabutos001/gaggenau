@@ -32,27 +32,27 @@ export default function AssistantOverlay({
         e.preventDefault();
         if (typed.trim()) onAskText(typed.trim());
       }}
-      className="flex w-full max-w-[92%] flex-col items-center gap-2"
+      className="flex w-full max-w-[92%] flex-col items-center gap-[1.6vh]"
     >
       <input
         value={typed}
         onChange={(e) => setTyped(e.target.value)}
         placeholder="z. B. Obstkuchen für heute Abend"
         autoFocus
-        className="text-lcd-ink placeholder:text-lcd-ink/30 w-full rounded-md border border-lcd-ink/25 bg-transparent px-3 py-1.5 text-sm outline-none focus:border-lcd-ink/60"
+        className="text-lcd-ink placeholder:text-lcd-ink/30 w-full rounded-md border border-lcd-ink/25 bg-transparent px-[1.8vh] py-[1.2vh] text-[clamp(13px,2.2vh,18px)] outline-none focus:border-lcd-ink/60"
       />
-      <div className="flex gap-2">
+      <div className="flex gap-[1.4vh]">
         <button
           type="button"
           onClick={onDismiss}
-          className="rounded-full border border-lcd-ink/30 px-4 py-1.5 text-xs text-lcd-ink/80"
+          className="rounded-full border border-lcd-ink/30 px-[2.4vh] py-[1.1vh] text-[clamp(12px,2vh,16px)] text-lcd-ink/80"
         >
           Abbrechen
         </button>
         <button
           type="submit"
           disabled={!typed.trim()}
-          className="rounded-full bg-red-500 px-5 py-1.5 text-xs font-medium text-white hover:bg-red-600 active:scale-95 disabled:opacity-40"
+          className="rounded-full bg-red-500 px-[3vh] py-[1.1vh] text-[clamp(12px,2vh,16px)] font-medium text-white hover:bg-red-600 active:scale-95 disabled:opacity-40"
         >
           {submitLabel}
         </button>
@@ -61,26 +61,26 @@ export default function AssistantOverlay({
   );
 
   return (
-    <div className="text-lcd-ink absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-[#1c2228]/95 px-5 text-center backdrop-blur-sm">
+    <div className="text-lcd-ink absolute inset-0 z-20 flex flex-col items-center justify-center gap-[2vh] bg-[#1c2228]/95 px-5 text-center backdrop-blur-sm">
       {state.phase === 'recording' && (
         <>
           <Listening />
-          <p className="text-sm text-lcd-ink/80">Was kochst du heute?</p>
-          <div className="mt-1 flex items-center gap-2">
+          <p className="text-[clamp(13px,2.2vh,18px)] text-lcd-ink/80">Was kochst du heute?</p>
+          <div className="mt-[0.6vh] flex items-center gap-[1.4vh]">
             {/* Cancel — discards the recording client-side without sending it,
                 for a misclicked mic. */}
             <button
               type="button"
               onClick={onDismiss}
               aria-label="Aufnahme abbrechen"
-              className="flex h-9 w-9 items-center justify-center rounded-full border border-lcd-ink/30 text-lcd-ink/70 active:scale-95"
+              className="flex h-[5vh] w-[5vh] items-center justify-center rounded-full border border-lcd-ink/30 text-lcd-ink/70 active:scale-95"
             >
-              <XIcon className="h-4 w-4" />
+              <XIcon className="h-[2.4vh] w-[2.4vh]" />
             </button>
             <button
               type="button"
               onClick={onStopAndAsk}
-              className="rounded-full bg-red-500 px-5 py-1.5 text-xs font-medium text-white hover:bg-red-600 active:scale-95"
+              className="rounded-full bg-red-500 px-[3vh] py-[1.1vh] text-[clamp(12px,2vh,16px)] font-medium text-white hover:bg-red-600 active:scale-95"
             >
               Fertig
             </button>
@@ -91,24 +91,24 @@ export default function AssistantOverlay({
       {state.phase === 'thinking' && (
         <>
           <Spinner />
-          <p className="text-sm text-lcd-ink/70">Suche das passende Programm…</p>
+          <p className="text-[clamp(13px,2.2vh,18px)] text-lcd-ink/70">Suche das passende Programm…</p>
         </>
       )}
 
       {state.phase === 'suggestion' && state.suggestion && (
         <>
           {state.suggestion.transcript && (
-            <p className="max-w-[90%] text-[11px] text-lcd-ink/45 italic">
+            <p className="max-w-[90%] text-[clamp(11px,1.8vh,15px)] text-lcd-ink/45 italic">
               „{state.suggestion.transcript}“
             </p>
           )}
-          <div className="flex items-center gap-3">
-            <ModeGlyph mode={state.suggestion.mode_id} className="text-lcd-ink h-9 w-9" />
+          <div className="flex items-center gap-[1.6vh]">
+            <ModeGlyph mode={state.suggestion.mode_id} className="text-lcd-ink h-[6vh] w-[6vh]" />
             <div className="text-left">
-              <div className="text-base leading-tight font-medium">
+              <div className="text-[clamp(16px,3vh,24px)] leading-tight font-medium">
                 {state.suggestion.mode_label}
               </div>
-              <div className="text-lcd-ink/70 text-sm">
+              <div className="text-lcd-ink/70 text-[clamp(13px,2.2vh,18px)]">
                 {toDisp(state.suggestion.temp_c, celsius)}
                 {celsius ? '°C' : '°F'}
               </div>
@@ -118,13 +118,13 @@ export default function AssistantOverlay({
           {/* The Sous-Chef answer is spoken, not written — the user listens.
               While it speaks we show a calm hint instead of the reply text. */}
           {state.speaking && (
-            <p className="text-lcd-ink/50 text-[11px] tracking-wide">Sous-Chef spricht …</p>
+            <p className="text-lcd-ink/50 text-[clamp(11px,1.8vh,15px)] tracking-wide">Sous-Chef spricht …</p>
           )}
-          <div className="mt-1 flex gap-2">
+          <div className="mt-[0.6vh] flex gap-[1.4vh]">
             <button
               type="button"
               onClick={onDismiss}
-              className="rounded-full border border-lcd-ink/30 px-4 py-1.5 text-xs text-lcd-ink/80 active:scale-95"
+              className="rounded-full border border-lcd-ink/30 px-[2.4vh] py-[1.1vh] text-[clamp(12px,2vh,16px)] text-lcd-ink/80 active:scale-95"
             >
               Verwerfen
             </button>
@@ -134,7 +134,7 @@ export default function AssistantOverlay({
                 state.suggestion &&
                 onConfirm(state.suggestion.mode_id, state.suggestion.temp_c)
               }
-              className="rounded-full bg-red-500 px-5 py-1.5 text-xs font-medium text-white hover:bg-red-600 active:scale-95"
+              className="rounded-full bg-red-500 px-[3vh] py-[1.1vh] text-[clamp(12px,2vh,16px)] font-medium text-white hover:bg-red-600 active:scale-95"
             >
               Übernehmen
             </button>
@@ -144,7 +144,7 @@ export default function AssistantOverlay({
 
       {state.phase === 'error' && (
         <>
-          <p className="max-w-[90%] text-sm text-red-500">{state.error}</p>
+          <p className="max-w-[90%] text-[clamp(13px,2.2vh,18px)] text-red-500">{state.error}</p>
           {textForm('Erneut fragen')}
         </>
       )}
@@ -156,11 +156,11 @@ export default function AssistantOverlay({
 // spoken reply plays.
 function Speaking() {
   return (
-    <div className="flex h-5 items-center gap-0.5" aria-label="spricht">
+    <div className="flex h-[3vh] items-center gap-[0.4vh]" aria-label="spricht">
       {[0, 1, 2].map((i) => (
         <span
           key={i}
-          className="bg-lcd-ink/70 w-0.5 rounded-full"
+          className="bg-lcd-ink/70 w-[0.5vh] rounded-full"
           style={{
             height: '100%',
             animation: `assistant-bar 0.8s ease-in-out ${i * 0.15}s infinite`,
@@ -173,11 +173,11 @@ function Speaking() {
 
 function Listening() {
   return (
-    <div className="flex h-8 items-center gap-1">
+    <div className="flex h-[5vh] items-center gap-[0.6vh]">
       {[0, 1, 2, 3, 4].map((i) => (
         <span
           key={i}
-          className="w-1 rounded-full bg-red-500"
+          className="w-[0.8vh] rounded-full bg-red-500"
           style={{
             height: '100%',
             animation: `assistant-bar 0.9s ease-in-out ${i * 0.12}s infinite`,
@@ -190,7 +190,7 @@ function Listening() {
 
 function Spinner() {
   return (
-    <span className="border-lcd-ink/25 border-t-lcd-ink h-7 w-7 animate-spin rounded-full border-2" />
+    <span className="border-lcd-ink/25 border-t-lcd-ink h-[5vh] w-[5vh] animate-spin rounded-full border-[3px]" />
   );
 }
 

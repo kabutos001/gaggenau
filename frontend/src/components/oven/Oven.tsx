@@ -63,9 +63,9 @@ export default function Oven() {
               type="button"
               onClick={() => assistant.startRecording()}
               aria-label="Was kochst du? — Mikrofon starten"
-              className="relative z-10 flex h-[5vh] w-[5vh] items-center justify-center rounded-full bg-red-500 text-white shadow-[0_0_0_1px_rgba(255,255,255,0.08),0_2px_10px_rgba(0,0,0,0.45)] transition hover:bg-red-600 active:scale-95"
+              className="relative z-10 flex h-[10vh] w-[10vh] items-center justify-center rounded-full bg-red-500 text-white shadow-[0_0_0_1px_rgba(255,255,255,0.08),0_2px_10px_rgba(0,0,0,0.45)] transition hover:bg-red-600 active:scale-95"
             >
-              <MicIcon className="h-[2.6vh] w-[2.6vh]" />
+              <MicIcon className="h-[5vh] w-[5vh]" />
             </button>
           </div>
         )}

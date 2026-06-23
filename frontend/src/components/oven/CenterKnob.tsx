@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useLayoutEffect, useRef } from 'react';
 
 interface Props {
   /** Pointer angle in degrees (0 = top), reflecting the current value. */
@@ -15,6 +15,29 @@ interface Props {
 const STEP = 24;
 // Drag distance (px) below which a release counts as a tap, not a turn.
 const TAP_SLOP = 6;
+// Visible detent scale: evenly-spaced rest positions across the dial's sweep.
+// The value sweeps -135°..+135° (see knobAngle), so the markers do too, and on
+// release the tick eases to whichever marker it's closest to — landing exactly
+// on it, so the white tick covers the black rim mark beneath it.
+const SWEEP_MIN = -135;
+const SWEEP_MAX = 135;
+const DETENTS = 11; // marks across the sweep (inclusive of both ends)
+const DETENT_ANGLES = Array.from(
+  { length: DETENTS },
+  (_, i) => SWEEP_MIN + (i * (SWEEP_MAX - SWEEP_MIN)) / (DETENTS - 1)
+);
+
+// Nearest detent angle to an arbitrary rotation. The tick's live rotation can
+// wind past ±180° over a long drag, so fold it back into the sweep's frame
+// before matching.
+const snapAngle = (deg: number) => {
+  let a = ((deg + 180) % 360) - 180; // normalise to (-180, 180]
+  if (a < -180) a += 360;
+  a = Math.max(SWEEP_MIN, Math.min(SWEEP_MAX, a)); // clamp into the sweep
+  return DETENT_ANGLES.reduce((best, d) =>
+    Math.abs(d - a) < Math.abs(best - a) ? d : best
+  );
+};
 
 // The single large chrome rotary from the reference photos. It sits low and
 // centred, half-sunk into the bottom edge of the glass. You grab it and turn:
@@ -32,6 +55,17 @@ export default function CenterKnob({ angle, onStep, onPress, inner }: Props) {
     moved: 0, // total absolute rotation, to tell a turn from a tap
   });
 
+  // Seed the tick to the value's angle ONCE on mount. After that the tick is
+  // driven purely imperatively (by `move`, then frozen on release) so it stays
+  // where the user drops it — we never re-bind it to `angle` on later renders,
+  // which is what used to snap it back to the value's detent.
+  useLayoutEffect(() => {
+    const start = snapAngle(angle);
+    if (tickRef.current) tickRef.current.style.transform = `rotate(${start}deg)`;
+    drag.current.live = start;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Pointer angle relative to the dial centre.
   const pointerAngle = (clientX: number, clientY: number) => {
     const el = ringRef.current;
@@ -47,7 +81,9 @@ export default function CenterKnob({ angle, onStep, onPress, inner }: Props) {
     drag.current = {
       active: true,
       last: pointerAngle(clientX, clientY),
-      live: angle, // start the live rotation where the value currently points
+      // Resume from where the tick was last left, not the value's angle — the
+      // dial is relative, so a new grab continues from the visible mark.
+      live: drag.current.live,
       accum: 0,
       moved: 0,
     };
@@ -78,17 +114,25 @@ export default function CenterKnob({ angle, onStep, onPress, inner }: Props) {
     }
   };
 
+  const settle = () => {
+    const d = drag.current;
+    // Snap the tick to the nearest detent and ease into it (transition on).
+    // The value was already banked from the drag deltas during move(); this is
+    // purely the visual settle, so the white tick comes to rest exactly over a
+    // black rim marker. Store it back so the next grab resumes from the marker.
+    const snapped = snapAngle(d.live);
+    d.live = snapped;
+    if (tickRef.current) {
+      tickRef.current.style.transition = '';
+      tickRef.current.style.transform = `rotate(${snapped}deg)`;
+    }
+  };
+
   const end = () => {
     const d = drag.current;
     if (d.active && d.moved < TAP_SLOP) onPress();
     d.active = false;
-    // Hand control back to the value-driven angle, easing into its detent.
-    // Set it explicitly (not '') so it's correct even when the last drag was
-    // under one detent and triggered no re-render.
-    if (tickRef.current) {
-      tickRef.current.style.transition = '';
-      tickRef.current.style.transform = `rotate(${angle}deg)`;
-    }
+    settle();
   };
 
   return (
@@ -104,28 +148,38 @@ export default function CenterKnob({ angle, onStep, onPress, inner }: Props) {
         onPointerUp={end}
         onPointerCancel={() => {
           drag.current.active = false;
-          if (tickRef.current) {
-            tickRef.current.style.transition = '';
-            tickRef.current.style.transform = `rotate(${angle}deg)`;
-          }
+          settle();
         }}
         onWheel={(e) => onStep(e.deltaY > 0 ? 1 : -1)}
       >
-        {/* orbiting position tick on the bezel. While idle it follows `angle`
-            (the value) with a soft settle; during a drag `move` overrides the
-            transform imperatively so it tracks the finger 1:1. */}
+        {/* black detent markers on the rim — the rest positions. Each is drawn
+            identically to the white tick (same radius/length/width) but rotated
+            to its detent angle, so the tick lands exactly over one when snapped. */}
+        {DETENT_ANGLES.map((d) => (
+          <div
+            key={d}
+            className="pointer-events-none absolute inset-0"
+            style={{ transform: `rotate(${d}deg)`, transformOrigin: '50% 50%' }}
+          >
+            <span className="absolute left-1/2 top-[3%] h-[13%] w-0.75 -translate-x-1/2 rounded-full bg-black/30" />
+          </div>
+        ))}
+
+        {/* orbiting position tick on the bezel. The transform is owned entirely
+            by the drag handlers (seeded once on mount, snapped on release); it is
+            intentionally NOT bound to `angle`. */}
         <div
           ref={tickRef}
           className="pointer-events-none absolute inset-0 transition-transform duration-150"
-          style={{ transform: `rotate(${angle}deg)`, transformOrigin: '50% 50%' }}
+          style={{ transformOrigin: '50% 50%' }}
         >
-          <span className="absolute left-1/2 top-[3%] h-[7%] w-0.5 -translate-x-1/2 rounded-full bg-white/80 shadow-[0_0_4px_rgba(255,255,255,0.6)]" />
+          <span className="absolute left-1/2 top-[3%] h-[13%] w-0.75 -translate-x-1/2 rounded-full bg-white/80 shadow-[0_0_4px_rgba(255,255,255,0.6)]" />
         </div>
 
         {/* dark glossy well */}
         <div className="knob-well pointer-events-none absolute inset-[22%] flex items-center justify-center rounded-full">
           {inner && (
-            <span className="text-lcd-ink/55 seg text-[clamp(10px,2.4vh,16px)]">{inner}</span>
+            <span className="text-lcd-ink/55 seg text-[clamp(18px,4.4vh,30px)]">{inner}</span>
           )}
         </div>
       </div>
