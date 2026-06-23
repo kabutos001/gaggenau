@@ -14,15 +14,13 @@ export type ModeId =
 
 export interface OvenMode {
   id: ModeId;
-  /** German label as printed in the manual. */
-  label: string;
-  /** Short usage description (manual p9). */
-  use: string;
   /** Default temperature shown in the manual for this mode (°C). */
   temp: number;
   /** Whether this mode is a special-accessory mode. */
   special?: boolean;
 }
+
+// Label and usage text live in the i18n catalogue (src/i18n), keyed by id.
 
 // The four touch buttons flanking the display. Two per side (top + middle).
 export type ButtonSlot = 'topLeft' | 'bottomLeft' | 'topRight' | 'bottomRight';

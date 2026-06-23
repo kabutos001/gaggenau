@@ -1,3 +1,4 @@
+import { useTranslations } from '../../../i18n/context';
 import { MODES, SETTING_FUNCTIONS, TIMER_FUNCTIONS } from '../constants';
 import { DoorGlyph, GridGlyph, ProbeGlyph, StandbyGlyph, WifiGlyph } from '../glyphs/Icons';
 import ModeGlyph from '../glyphs/ModeGlyph';
@@ -44,6 +45,7 @@ export default function ScreenContent({
   state: OvenState;
   dispatch: (a: Action) => void;
 }) {
+  const t = useTranslations();
   const mode = MODES[state.modeIndex];
   const unit = state.celsius ? '°C' : '°F';
   const toDisp = (c: number) => (state.celsius ? c : Math.round((c * 9) / 5 + 32));
@@ -69,14 +71,14 @@ export default function ScreenContent({
           <div className="absolute inset-x-0 top-[20%] flex flex-col items-center gap-[1vh]">
             <SevenSeg value={formatClock(state)} className="text-[clamp(26px,6.2vh,50px)]" />
             <span className="text-lcd-ink/55 text-[clamp(12px,2.2vh,16px)] tracking-wide">
-              Kindersicherung aktiv
+              {t.screen.childLockActive}
             </span>
           </div>
           <CornerIcon
             onTap={() => dispatch({ type: 'TOGGLE_LOCK' })}
             className="right-[4%] top-[8%]"
           >
-            <span className="text-[clamp(12px,2.2vh,16px)]">Entsperren</span>
+            <span className="text-[clamp(12px,2.2vh,16px)]">{t.screen.unlock}</span>
           </CornerIcon>
           <ConnBadge />
         </div>
@@ -97,7 +99,7 @@ export default function ScreenContent({
           <div className="absolute left-1/2 top-[11%] flex -translate-x-1/2 flex-col items-center gap-[0.8vh]">
             <ModeGlyph mode={mode.id} className="text-lcd-ink/90 h-[12vh] w-[10vh]" />
             <span className="text-lcd-ink/55 max-w-[32vh] text-center text-[clamp(11px,2.1vh,15px)] leading-tight">
-              {mode.label}
+              {t.modes[mode.id].label}
             </span>
           </div>
 
@@ -115,7 +117,7 @@ export default function ScreenContent({
           {/* orange start/heat triangle on the right edge */}
           <button
             type="button"
-            aria-label="Start"
+            aria-label={t.screen.start}
             onClick={() => dispatch({ type: 'CYCLE_MODE', dir: 1 })}
             className="absolute right-[2%] top-1/2 z-10 flex min-h-[10vh] min-w-[8vh] -translate-y-1/2 items-center justify-center"
           >
@@ -154,7 +156,9 @@ export default function ScreenContent({
                 {unit}
               </span>
             </div>
-            <span className="text-lcd-ink/55 text-[clamp(11px,2.2vh,16px)]">Aktuelle Temperatur</span>
+            <span className="text-lcd-ink/55 text-[clamp(11px,2.2vh,16px)]">
+              {t.screen.currentTemperature}
+            </span>
           </div>
           <CornerIcon onTap={() => dispatch({ type: 'BACK' })} className="right-[4%] top-[8%]">
             <StandbyGlyph className="h-[10vh] w-[10vh]" />
@@ -169,16 +173,18 @@ export default function ScreenContent({
       let caption = '';
       if (fn.id === 'minuteMinder') {
         big = formatMinutes(state.minuteMinder);
-        caption = 'Kurzzeit-Wecker';
+        caption = t.timerFunctions.minuteMinder;
       } else if (fn.id === 'stopwatch') {
         big = formatSeconds(state.stopwatch);
-        caption = state.stopwatchRunning ? 'Stoppuhr · läuft' : 'Stoppuhr';
+        caption = state.stopwatchRunning
+          ? t.screen.stopwatchRunning
+          : t.timerFunctions.stopwatch;
       } else if (fn.id === 'cookDuration') {
         big = formatMinutes(state.cookDuration);
-        caption = 'Garzeit-Dauer';
+        caption = t.timerFunctions.cookDuration;
       } else {
         big = cookEndTime(state);
-        caption = 'Garzeit-Ende';
+        caption = t.timerFunctions.cookEnd;
       }
       return (
         <div className="relative h-full w-full">
@@ -211,14 +217,12 @@ export default function ScreenContent({
     case 'firstSettings': {
       const fn = SETTING_FUNCTIONS[state.settingIndex];
       let big = '';
-      let caption = fn.label;
+      const caption = t.settingFunctions[fn.id];
       if (fn.id === 'clock') big = formatClock(state);
       else if (fn.id === 'timeFormat') big = state.use24h ? '24H' : '12H';
       else if (fn.id === 'tempUnit') big = state.celsius ? '°C' : '°F';
-      else if (fn.id === 'childLock') {
-        big = state.childLockAvailable ? 'ON' : 'OFF';
-        caption = 'Kindersicherung';
-      } else big = 'OFF';
+      else if (fn.id === 'childLock') big = state.childLockAvailable ? 'ON' : 'OFF';
+      else big = 'OFF';
       return (
         <div className="relative h-full w-full">
           <div className="absolute inset-x-0 top-[10%] flex flex-col items-center gap-[0.6vh]">

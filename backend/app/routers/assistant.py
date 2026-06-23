@@ -43,9 +43,9 @@ OUTPUT_SAMPLE_RATE = 24000
 # A calm, low voice fits the "discreet luxury Sous-Chef" persona.
 VOICE_NAME = "Charon"
 
-# The spoken Sous-Chef persona/system prompt, authored in souschef.txt so it can
-# be edited without touching code. Loaded once at import.
-_PROMPT_PATH = Path(__file__).resolve().parent.parent / "prompts" / "souschef.txt"
+# The spoken Sous-Chef persona/system prompt, authored in souschef.en.txt so it
+# can be edited without touching code. Loaded once at import.
+_PROMPT_PATH = Path(__file__).resolve().parent.parent / "prompts" / "souschef.en.txt"
 SOUSCHEF_PROMPT = _PROMPT_PATH.read_text(encoding="utf-8").strip()
 
 # Operating-mode catalogue — ground truth from the BO 210/211 manual

@@ -1,5 +1,6 @@
 import { useEffect, useReducer } from 'react';
 
+import { useTranslations } from '../../i18n/context';
 import AssistantOverlay from './assistant/AssistantOverlay';
 import { useAssistant } from './assistant/useAssistant';
 import { INITIAL_STATE } from './constants';
@@ -19,6 +20,7 @@ function MicIcon({ className }: { className?: string }) {
 export default function Oven() {
   const [state, dispatch] = useReducer(ovenReducer, INITIAL_STATE);
   const assistant = useAssistant();
+  const t = useTranslations();
 
   // 1-second simulation tick: ramps cavity temp, runs the stopwatch.
   useEffect(() => {
@@ -62,7 +64,7 @@ export default function Oven() {
             <button
               type="button"
               onClick={() => assistant.startRecording()}
-              aria-label="Was kochst du? — Mikrofon starten"
+              aria-label={t.assistant.micButtonAria}
               className="relative z-10 flex h-[17vh] w-[17vh] items-center justify-center rounded-full bg-red-500 text-white shadow-[0_0_0_1px_rgba(255,255,255,0.08),0_2px_10px_rgba(0,0,0,0.45)] transition hover:bg-red-600 active:scale-95"
             >
               <MicIcon className="h-[6.5vh] w-[6.5vh]" />

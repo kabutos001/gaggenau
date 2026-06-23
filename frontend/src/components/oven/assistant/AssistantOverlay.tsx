@@ -1,5 +1,6 @@
 import { useState } from 'react';
 
+import { useTranslations } from '../../../i18n/context';
 import ModeGlyph from '../glyphs/ModeGlyph';
 import type { ModeId } from '../types';
 import type { AssistantState } from './useAssistant';
@@ -24,6 +25,7 @@ export default function AssistantOverlay({
   onConfirm,
   onDismiss,
 }: Props) {
+  const t = useTranslations();
   const [typed, setTyped] = useState('');
 
   const textForm = (submitLabel: string) => (
@@ -37,7 +39,7 @@ export default function AssistantOverlay({
       <input
         value={typed}
         onChange={(e) => setTyped(e.target.value)}
-        placeholder="z. B. Obstkuchen für heute Abend"
+        placeholder={t.assistant.inputPlaceholder}
         autoFocus
         className="text-lcd-ink placeholder:text-lcd-ink/30 w-full rounded-md border border-lcd-ink/25 bg-transparent px-[1.8vh] py-[1.2vh] text-[clamp(13px,2.2vh,18px)] outline-none focus:border-lcd-ink/60"
       />
@@ -47,7 +49,7 @@ export default function AssistantOverlay({
           onClick={onDismiss}
           className="rounded-full border border-lcd-ink/30 px-[2.4vh] py-[1.1vh] text-[clamp(12px,2vh,16px)] text-lcd-ink/80"
         >
-          Abbrechen
+          {t.assistant.cancel}
         </button>
         <button
           type="submit"
@@ -65,14 +67,16 @@ export default function AssistantOverlay({
       {state.phase === 'recording' && (
         <>
           <Listening />
-          <p className="text-[clamp(13px,2.2vh,18px)] text-lcd-ink/80">Was kochst du heute?</p>
+          <p className="text-[clamp(13px,2.2vh,18px)] text-lcd-ink/80">
+            {t.assistant.recordingPrompt}
+          </p>
           <div className="mt-[0.6vh] flex items-center gap-[1.4vh]">
             {/* Cancel — discards the recording client-side without sending it,
                 for a misclicked mic. */}
             <button
               type="button"
               onClick={onDismiss}
-              aria-label="Aufnahme abbrechen"
+              aria-label={t.assistant.cancelRecordingAria}
               className="flex h-[5vh] w-[5vh] items-center justify-center rounded-full border border-lcd-ink/30 text-lcd-ink/70 active:scale-95"
             >
               <XIcon className="h-[2.4vh] w-[2.4vh]" />
@@ -82,7 +86,7 @@ export default function AssistantOverlay({
               onClick={onStopAndAsk}
               className="rounded-full bg-red-500 px-[3vh] py-[1.1vh] text-[clamp(12px,2vh,16px)] font-medium text-white hover:bg-red-600 active:scale-95"
             >
-              Fertig
+              {t.assistant.done}
             </button>
           </div>
         </>
@@ -91,7 +95,7 @@ export default function AssistantOverlay({
       {state.phase === 'thinking' && (
         <>
           <Spinner />
-          <p className="text-[clamp(13px,2.2vh,18px)] text-lcd-ink/70">Suche das passende Programm…</p>
+          <p className="text-[clamp(13px,2.2vh,18px)] text-lcd-ink/70">{t.assistant.thinking}</p>
         </>
       )}
 
@@ -118,7 +122,9 @@ export default function AssistantOverlay({
           {/* The Sous-Chef answer is spoken, not written — the user listens.
               While it speaks we show a calm hint instead of the reply text. */}
           {state.speaking && (
-            <p className="text-lcd-ink/50 text-[clamp(11px,1.8vh,15px)] tracking-wide">Sous-Chef spricht …</p>
+            <p className="text-lcd-ink/50 text-[clamp(11px,1.8vh,15px)] tracking-wide">
+              {t.assistant.speaking}
+            </p>
           )}
           <div className="mt-[0.6vh] flex gap-[1.4vh]">
             <button
@@ -126,7 +132,7 @@ export default function AssistantOverlay({
               onClick={onDismiss}
               className="rounded-full border border-lcd-ink/30 px-[2.4vh] py-[1.1vh] text-[clamp(12px,2vh,16px)] text-lcd-ink/80 active:scale-95"
             >
-              Verwerfen
+              {t.assistant.discard}
             </button>
             <button
               type="button"
@@ -136,7 +142,7 @@ export default function AssistantOverlay({
               }
               className="rounded-full bg-red-500 px-[3vh] py-[1.1vh] text-[clamp(12px,2vh,16px)] font-medium text-white hover:bg-red-600 active:scale-95"
             >
-              Übernehmen
+              {t.assistant.apply}
             </button>
           </div>
         </>
@@ -145,7 +151,7 @@ export default function AssistantOverlay({
       {state.phase === 'error' && (
         <>
           <p className="max-w-[90%] text-[clamp(13px,2.2vh,18px)] text-red-500">{state.error}</p>
-          {textForm('Erneut fragen')}
+          {textForm(t.assistant.askAgain)}
         </>
       )}
     </div>
@@ -155,8 +161,9 @@ export default function AssistantOverlay({
 // Small "the device is talking" meter shown next to the suggestion while the
 // spoken reply plays.
 function Speaking() {
+  const t = useTranslations();
   return (
-    <div className="flex h-[3vh] items-center gap-[0.4vh]" aria-label="spricht">
+    <div className="flex h-[3vh] items-center gap-[0.4vh]" aria-label={t.assistant.speakingAria}>
       {[0, 1, 2].map((i) => (
         <span
           key={i}

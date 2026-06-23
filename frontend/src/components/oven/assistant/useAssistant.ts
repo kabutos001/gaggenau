@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
 
+import { useTranslations } from '../../../i18n/context';
 import { askAssistant, streamAssistant, type CookSuggestion } from './api';
 import { startPcmCapture, type PcmCapture } from './audio';
 
@@ -26,6 +27,7 @@ const INITIAL: AssistantState = {
 };
 
 export function useAssistant() {
+  const t = useTranslations();
   const [state, setState] = useState<AssistantState>(INITIAL);
   const captureRef = useRef<PcmCapture | null>(null);
 
@@ -46,20 +48,23 @@ export function useAssistant() {
       setState({
         phase: 'error',
         suggestion: null,
-        error: 'Mikrofon nicht verfügbar — tippe deinen Wunsch ein.',
+        error: t.assistant.micUnavailable,
         speaking: false,
       });
     }
-  }, []);
+  }, [t]);
 
-  const fail = useCallback((e: unknown) => {
-    setState({
-      phase: 'error',
-      suggestion: null,
-      error: e instanceof Error ? e.message : 'Etwas ist schiefgelaufen.',
-      speaking: false,
-    });
-  }, []);
+  const fail = useCallback(
+    (e: unknown) => {
+      setState({
+        phase: 'error',
+        suggestion: null,
+        error: e instanceof Error ? e.message : t.assistant.genericError,
+        speaking: false,
+      });
+    },
+    [t]
+  );
 
   // Stop recording and stream the captured audio. The spoken reply plays back
   // frame-by-frame as it arrives (low latency); the program suggestion appears
