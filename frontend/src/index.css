@@ -1,0 +1,58 @@
+@import 'tailwindcss';
+
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  src: url('./fonts/plus-jakarta-sans-v12-latin-regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* DSEG — open-source seven-segment LCD font (SIL OFL). Mirrors the
+   Gaggenau oven's pixel display. Falls back to a mono font offline. */
+@font-face {
+  font-family: 'DSEG7';
+  src: url('https://cdn.jsdelivr.net/npm/dseg@0.46.0/fonts/DSEG7-Classic/DSEG7Classic-Bold.woff2')
+    format('woff2');
+  font-weight: 700;
+  font-display: swap;
+}
+
+@theme {
+  --color-dps-blue-500: #0066cc;
+  --color-dps-blue-600: #0052a3;
+  --font-sans: 'Plus Jakarta Sans', sans-serif;
+  /* LCD palette pulled from the reference photo */
+  --color-lcd-glass: #2a3138;
+  --color-lcd-glass-2: #1d242b;
+  --color-lcd-ink: #c9d1d8;
+  --color-lcd-ghost: rgba(201, 209, 216, 0.1);
+  --color-lcd-heat: #e8492b;
+  --font-seg: 'DSEG7', 'Courier New', monospace;
+}
+
+/* Assistant listening meter — bars pulse while recording. */
+@keyframes assistant-bar {
+  0%,
+  100% {
+    transform: scaleY(0.3);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+/* A seven-segment readout: faint "all segments on" ghost behind the value. */
+.seg {
+  font-family: var(--font-seg);
+  position: relative;
+  color: var(--color-lcd-ink);
+  letter-spacing: 0.04em;
+}
+.seg::before {
+  content: attr(data-ghost);
+  position: absolute;
+  inset: 0;
+  color: var(--color-lcd-ghost);
+  pointer-events: none;
+}

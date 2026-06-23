@@ -1,0 +1,54 @@
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: template_db
+    ports:
+      - '5435:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile.dev
+    ports:
+      - '3000:3000'
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@postgres:5432/template_db
+      PORT: 3000
+      CORS_ORIGIN: http://localhost:5173
+      APP_ENV: development
+      # GEMINI_API_KEY is read from backend/.env via env_file below.
+    env_file:
+      - ./backend/.env
+    volumes:
+      - ./backend/app:/app/backend/app
+      - ./backend/alembic:/app/backend/alembic
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile.dev
+    ports:
+      - '5173:5173'
+    environment:
+      VITE_API_URL: http://localhost:3000
+    volumes:
+      - ./frontend/src:/app/frontend/src
+      - ./frontend/index.html:/app/frontend/index.html
+    depends_on:
+      - backend
+
+volumes:
+  postgres-data:
