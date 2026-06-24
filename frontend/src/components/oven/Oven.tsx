@@ -56,10 +56,10 @@ export default function Oven() {
         {/* Assistant trigger — the headline feature. A hot mic: one tap starts
             recording immediately (no intermediate "Sprechen" step). Styled as
             the red microphone from the Siemens reference, with pulsing rings.
-            Sits in the bottom-right of the glass but lifted clear of the
-            per-screen timer/info control that lives in the very corner. */}
+            Now owns the bottom-right corner outright (the timer control moved
+            to the bottom-left), so it sits centred in that corner. */}
         {!assistantActive && (
-          <div className="absolute bottom-[7%] right-[13%] z-20 flex items-center justify-center">
+          <div className="absolute bottom-[6%] right-[6%] z-20 flex items-center justify-center">
             <span className="pointer-events-none absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-20" />
             <button
               type="button"

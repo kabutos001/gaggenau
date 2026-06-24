@@ -7,11 +7,14 @@ import type { Action, OvenState } from '../types';
 import { cookEndTime, formatClock, formatMinutes, formatSeconds } from '../utils';
 
 // Persistent connectivity marks, bottom-left of the glass on every screen.
-function ConnBadge() {
+// An optional trailing slot lets screen-specific controls (e.g. the timer)
+// sit flush against the icons rather than floating off on their own.
+function ConnBadge({ trailing }: { trailing?: React.ReactNode }) {
   return (
     <div className="text-lcd-ink/40 absolute bottom-[6%] left-[4%] flex items-end gap-[1.8vh]">
       <WifiGlyph className="h-[9vh] w-[10vh]" />
       <GridGlyph className="h-[8vh] w-[8vh]" />
+      {trailing}
     </div>
   );
 }
@@ -126,20 +129,28 @@ export default function ScreenContent({
             </svg>
           </button>
 
-          {/* timer + info, lower-left near the badge */}
-          <CornerIcon onTap={() => dispatch({ type: 'OPEN_TIMER' })} className="bottom-[6%] right-[5%]">
-            <svg viewBox="0 0 24 24" className="h-[10vh] w-[10vh]" fill="none">
-              <circle cx="12" cy="13" r="8" stroke="currentColor" strokeWidth="2" />
-              <path
-                d="M12 8 v5 l4 2"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </CornerIcon>
-          <ConnBadge />
+          {/* timer sits flush to the right of the connectivity icons */}
+          <ConnBadge
+            trailing={
+              <button
+                type="button"
+                onClick={() => dispatch({ type: 'OPEN_TIMER' })}
+                aria-label={t.timerFunctions.minuteMinder}
+                className="text-lcd-ink/70 active:text-lcd-ink flex items-center justify-center transition"
+              >
+                <svg viewBox="0 0 24 24" className="h-[10vh] w-[10vh]" fill="none">
+                  <circle cx="12" cy="13" r="8" stroke="currentColor" strokeWidth="2" />
+                  <path
+                    d="M12 8 v5 l4 2"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
+            }
+          />
         </div>
       );
 
