@@ -49,6 +49,23 @@ textarea,
   -webkit-user-select: text;
 }
 
+/* Smart-scroll fullscreen on iPhone. We run in a browser context (not
+   standalone) so the mic works, but mobile Safari only collapses its top/bottom
+   chrome once the page is actually scrollable. So we make the page a hair taller
+   than the viewport: the oven still fills the visible area (it's sized in dvh),
+   while the extra sliver gives Safari something to scroll, which hides the bars.
+   A one-time scroll nudge in main.tsx triggers the collapse without user effort. */
+html {
+  /* fill under the (collapsing) chrome and the status-bar / home-indicator. */
+  height: 100%;
+}
+body {
+  min-height: calc(100dvh + 1px);
+  margin: 0;
+  /* momentum scroll + don't bounce the whole document in a distracting way. */
+  overscroll-behavior-y: none;
+}
+
 /* Assistant listening meter — bars pulse while recording. */
 @keyframes assistant-bar {
   0%,
