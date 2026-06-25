@@ -60,7 +60,12 @@ html {
   height: 100%;
 }
 body {
-  min-height: calc(100dvh + 1px);
+  /* Give Safari a real scroll margin to collapse into. iOS 17 Safari won't hide
+     its chrome for a mere 1px of overflow — it needs roughly a toolbar's worth
+     of scrollable height. Newer iOS (18/26) collapses with far less, but the
+     larger margin is harmless there because the oven is sized in dvh and stays
+     pinned to the visible area regardless. */
+  min-height: calc(100dvh + 90px);
   margin: 0;
   /* momentum scroll + don't bounce the whole document in a distracting way. */
   overscroll-behavior-y: none;

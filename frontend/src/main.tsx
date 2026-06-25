@@ -17,11 +17,16 @@ createRoot(document.getElementById('root')!).render(
 // once the user scrolls. We nudge that scroll programmatically (the body is sized
 // 1px taller than the viewport in index.css) so the bars collapse on their own.
 function hideBrowserChrome() {
-  // A tiny downward scroll is enough for Safari to start collapsing the bars.
-  window.scrollTo(0, 1);
+  // Scroll past the toolbar margin (index.css adds ~90px). iOS 17 Safari ignores
+  // a 1px nudge; scrolling the full overflow forces the chrome to collapse.
+  window.scrollTo(0, document.body.scrollHeight);
 }
-// Run after layout settles, and again whenever the viewport changes (rotation,
-// chrome resize) so we re-hide if Safari brings the bar back.
-window.addEventListener('load', () => setTimeout(hideBrowserChrome, 100));
-window.addEventListener('orientationchange', () => setTimeout(hideBrowserChrome, 300));
-window.addEventListener('resize', () => setTimeout(hideBrowserChrome, 300));
+// Older iOS (e.g. 15 Pro / iOS 17.5) lays out late, so a single early nudge can
+// fire before Safari is ready and do nothing. Retry a few times after load to
+// catch whenever it finally settles. Newer iOS collapses on the first try.
+function nudge() {
+  [0, 150, 400, 800].forEach((d) => setTimeout(hideBrowserChrome, d));
+}
+window.addEventListener('load', nudge);
+window.addEventListener('orientationchange', nudge);
+window.addEventListener('resize', nudge);
