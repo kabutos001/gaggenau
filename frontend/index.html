@@ -25,6 +25,9 @@
   </head>
   <body>
     <div id="root"></div>
+    <!-- Invisible scroll margin: lets mobile Safari collapse its chrome without
+         displacing the (fixed) app. See #chrome-spacer in index.css. -->
+    <div id="chrome-spacer" aria-hidden="true"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
