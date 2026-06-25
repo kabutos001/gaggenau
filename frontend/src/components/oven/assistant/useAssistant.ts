@@ -37,13 +37,20 @@ export function useAssistant() {
   // is unavailable.
   const startRecording = useCallback(async () => {
     try {
+      // Temporary diagnostics for the home-screen PWA mic issue: surface why the
+      // mic is unavailable instead of a generic message. Remove once resolved.
+      if (!window.isSecureContext) throw new Error('diag: not a secure context (HTTPS required)');
+      if (!navigator.mediaDevices?.getUserMedia)
+        throw new Error('diag: navigator.mediaDevices.getUserMedia is undefined in this context');
       captureRef.current = await startPcmCapture();
       setState({ phase: 'recording', suggestion: null, error: null, speaking: false });
-    } catch {
+    } catch (e) {
+      const detail =
+        e instanceof Error ? `${e.name}: ${e.message}` : String(e);
       setState({
         phase: 'error',
         suggestion: null,
-        error: t.assistant.micUnavailable,
+        error: `${t.assistant.micUnavailable} — ${detail}`,
         speaking: false,
       });
     }
