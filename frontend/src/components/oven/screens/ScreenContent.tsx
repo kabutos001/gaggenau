@@ -59,7 +59,7 @@ export default function ScreenContent({
         <div className="relative h-full w-full">
           {/* GAGGENAU wordmark sits centred-high, knob is dark below it */}
           <div className="absolute inset-x-0 top-[16%] flex flex-col items-center gap-[1vh]">
-            <span className="text-lcd-ink/85 text-[clamp(18px,4.4vh,34px)] font-light uppercase tracking-[0.45em]">
+            <span className="text-lcd-ink/85 text-[clamp(18px,4.4vh,34px)] font-light tracking-[0.45em] uppercase">
               Gaggenau
             </span>
             <SevenSeg value={formatClock(state)} className="text-[clamp(20px,4.6vh,48px)]" />
@@ -79,7 +79,7 @@ export default function ScreenContent({
           </div>
           <CornerIcon
             onTap={() => dispatch({ type: 'TOGGLE_LOCK' })}
-            className="right-[4%] top-[8%]"
+            className="top-[8%] right-[4%]"
           >
             <span className="text-[clamp(12px,2.2vh,16px)]">{t.screen.unlock}</span>
           </CornerIcon>
@@ -91,7 +91,7 @@ export default function ScreenContent({
       return (
         <div className="relative h-full w-full">
           {/* big set-temperature, upper-left */}
-          <div className="absolute left-[6%] top-[13%] flex items-start">
+          <div className="absolute top-[13%] left-[6%] flex items-start">
             <SevenSeg value={String(toDisp(state.temp))} className="text-[clamp(36px,10vh,80px)]" />
             <span className="text-lcd-ink/75 mt-[0.6vh] ml-[0.4vh] text-[clamp(43px,43vh,46px)]">
               °
@@ -99,7 +99,7 @@ export default function ScreenContent({
           </div>
 
           {/* mode glyph, upper-centre */}
-          <div className="absolute left-1/2 top-[11%] flex -translate-x-1/2 flex-col items-center gap-[0.8vh]">
+          <div className="absolute top-[11%] left-1/2 flex -translate-x-1/2 flex-col items-center gap-[0.8vh]">
             <ModeGlyph mode={mode.id} className="text-lcd-ink/90 h-[12vh] w-[10vh]" />
             <span className="text-lcd-ink/55 max-w-[32vh] text-center text-[clamp(11px,2.1vh,15px)] leading-tight">
               {t.modes[mode.id].label}
@@ -107,11 +107,11 @@ export default function ScreenContent({
           </div>
 
           {/* probe + door, upper-right */}
-          <div className="absolute right-[5%] top-[13%] flex items-center gap-[2.6vh]">
+          <div className="absolute top-[13%] right-[5%] flex items-center gap-[2.6vh]">
             <ProbeGlyph className="text-lcd-ink/45 h-[9vh] w-[9vh]" />
             <CornerIcon
               onTap={() => dispatch({ type: 'OPEN_SETTINGS' })}
-              className="relative right-auto top-auto"
+              className="relative top-auto right-auto"
             >
               <DoorGlyph className="h-[9vh] w-[9vh]" />
             </CornerIcon>
@@ -122,7 +122,7 @@ export default function ScreenContent({
             type="button"
             aria-label={t.screen.start}
             onClick={() => dispatch({ type: 'CYCLE_MODE', dir: 1 })}
-            className="absolute right-[2%] top-1/2 z-10 flex min-h-[10vh] min-w-[8vh] -translate-y-1/2 items-center justify-center"
+            className="absolute top-1/2 right-[2%] z-10 flex min-h-[10vh] min-w-[8vh] -translate-y-1/2 items-center justify-center"
           >
             <svg viewBox="0 0 24 24" className="h-[7vh] w-[7vh]">
               <path d="M7 4 l13 8 -13 8 z" fill="var(--color-lcd-heat)" />
@@ -171,7 +171,7 @@ export default function ScreenContent({
               {t.screen.currentTemperature}
             </span>
           </div>
-          <CornerIcon onTap={() => dispatch({ type: 'BACK' })} className="right-[4%] top-[8%]">
+          <CornerIcon onTap={() => dispatch({ type: 'BACK' })} className="top-[8%] right-[4%]">
             <StandbyGlyph className="h-[10vh] w-[10vh]" />
           </CornerIcon>
           <ConnBadge />
@@ -187,9 +187,7 @@ export default function ScreenContent({
         caption = t.timerFunctions.minuteMinder;
       } else if (fn.id === 'stopwatch') {
         big = formatSeconds(state.stopwatch);
-        caption = state.stopwatchRunning
-          ? t.screen.stopwatchRunning
-          : t.timerFunctions.stopwatch;
+        caption = state.stopwatchRunning ? t.screen.stopwatchRunning : t.timerFunctions.stopwatch;
       } else if (fn.id === 'cookDuration') {
         big = formatMinutes(state.cookDuration);
         caption = t.timerFunctions.cookDuration;
@@ -206,17 +204,17 @@ export default function ScreenContent({
           {/* prev / next function arrows along the top */}
           <CornerIcon
             onTap={() => dispatch({ type: 'TIMER_NAV', dir: -1 })}
-            className="left-[5%] top-1/2 -translate-y-1/2"
+            className="top-1/2 left-[5%] -translate-y-1/2"
           >
             <Chevron dir="left" />
           </CornerIcon>
           <CornerIcon
             onTap={() => dispatch({ type: 'TIMER_NAV', dir: 1 })}
-            className="right-[5%] top-1/2 -translate-y-1/2"
+            className="top-1/2 right-[5%] -translate-y-1/2"
           >
             <Chevron dir="right" />
           </CornerIcon>
-          <CornerIcon onTap={() => dispatch({ type: 'BACK' })} className="right-[4%] top-[8%]">
+          <CornerIcon onTap={() => dispatch({ type: 'BACK' })} className="top-[8%] right-[4%]">
             <StandbyGlyph className="h-[5.8vh] w-[5.8vh]" />
           </CornerIcon>
           <ConnBadge />
@@ -242,17 +240,17 @@ export default function ScreenContent({
           </div>
           <CornerIcon
             onTap={() => dispatch({ type: 'SETTINGS_NAV', dir: -1 })}
-            className="left-[5%] top-1/2 -translate-y-1/2"
+            className="top-1/2 left-[5%] -translate-y-1/2"
           >
             <Chevron dir="left" />
           </CornerIcon>
           <CornerIcon
             onTap={() => dispatch({ type: 'SETTINGS_NAV', dir: 1 })}
-            className="right-[5%] top-1/2 -translate-y-1/2"
+            className="top-1/2 right-[5%] -translate-y-1/2"
           >
             <Chevron dir="right" />
           </CornerIcon>
-          <CornerIcon onTap={() => dispatch({ type: 'BACK' })} className="right-[4%] top-[8%]">
+          <CornerIcon onTap={() => dispatch({ type: 'BACK' })} className="top-[8%] right-[4%]">
             <StandbyGlyph className="h-[5.8vh] w-[5.8vh]" />
           </CornerIcon>
           <ConnBadge />

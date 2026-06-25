@@ -59,7 +59,7 @@ export default function Oven() {
             Now owns the bottom-right corner outright (the timer control moved
             to the bottom-left), so it sits centred in that corner. */}
         {!assistantActive && (
-          <div className="absolute bottom-[6%] right-[6%] z-20 flex items-center justify-center">
+          <div className="absolute right-[6%] bottom-[6%] z-20 flex items-center justify-center">
             <span className="pointer-events-none absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-20" />
             <button
               type="button"

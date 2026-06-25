@@ -31,6 +31,21 @@ from ..config import settings
 
 logger = logging.getLogger(__name__)
 
+
+async def _send_error(websocket: WebSocket, detail: str) -> None:
+    """Best-effort: report an error to the client, then close.
+
+    If the client has already gone away the socket is dead and any send/close
+    raises; that's expected, so we swallow it rather than letting a routine
+    disconnect surface as an unhandled ASGI exception.
+    """
+    try:
+        await websocket.send_json({"type": "error", "detail": detail})
+        await websocket.close()
+    except Exception:  # noqa: BLE001
+        pass
+
+
 router = APIRouter(prefix="/api/assistant", tags=["assistant"])
 
 # Gemini Live both transcribes the recorded blob AND speaks the Sous-Chef reply;
@@ -450,20 +465,19 @@ async def cook_ws(websocket: WebSocket) -> None:
                         )
                 if getattr(sc, "turn_complete", False):
                     break
+    except WebSocketDisconnect:
+        # Client left mid-stream (closed tab, navigated, lost network). Routine
+        # — not an error; just stop relaying.
+        logger.info("[assistant:ws] client disconnected mid-turn")
+        return
     except Exception:  # noqa: BLE001
         logger.exception("[assistant:ws] live turn failed")
-        await websocket.send_json(
-            {"type": "error", "detail": "Could not transcribe audio"}
-        )
-        await websocket.close()
+        await _send_error(websocket, "Could not transcribe audio")
         return
 
     said = transcript.strip()
     if not said:
-        await websocket.send_json(
-            {"type": "error", "detail": "Could not make out what you said"}
-        )
-        await websocket.close()
+        await _send_error(websocket, "Could not make out what you said")
         return
 
     # Selection may already be running; if the transcript never triggered it
@@ -476,10 +490,7 @@ async def cook_ws(websocket: WebSocket) -> None:
         chosen = await select_task
     except Exception:  # noqa: BLE001
         logger.exception("[assistant:ws] program selection failed")
-        await websocket.send_json(
-            {"type": "error", "detail": "Assistant is unavailable"}
-        )
-        await websocket.close()
+        await _send_error(websocket, "Assistant is unavailable")
         return
 
     mode_id, label, temp, rationale, dish = _finalize_program(chosen)
@@ -490,15 +501,19 @@ async def cook_ws(websocket: WebSocket) -> None:
         temp,
         audio_frames,
     )
-    await websocket.send_json(
-        {
-            "type": "suggestion",
-            "transcript": said,
-            "mode_id": mode_id,
-            "mode_label": label,
-            "temp_c": temp,
-            "rationale": rationale,
-            "dish": dish,
-        }
-    )
-    await websocket.close()
+    try:
+        await websocket.send_json(
+            {
+                "type": "suggestion",
+                "transcript": said,
+                "mode_id": mode_id,
+                "mode_label": label,
+                "temp_c": temp,
+                "rationale": rationale,
+                "dish": dish,
+            }
+        )
+        await websocket.close()
+    except (WebSocketDisconnect, RuntimeError):
+        # Client left before we delivered the suggestion — harmless.
+        logger.info("[assistant:ws] client gone before suggestion delivered")

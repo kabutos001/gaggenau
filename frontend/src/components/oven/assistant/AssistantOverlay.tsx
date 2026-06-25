@@ -14,8 +14,7 @@ interface Props {
   onDismiss: () => void;
 }
 
-const toDisp = (c: number, celsius: boolean) =>
-  celsius ? c : Math.round((c * 9) / 5 + 32);
+const toDisp = (c: number, celsius: boolean) => (celsius ? c : Math.round((c * 9) / 5 + 32));
 
 export default function AssistantOverlay({
   state,
@@ -41,13 +40,13 @@ export default function AssistantOverlay({
         onChange={(e) => setTyped(e.target.value)}
         placeholder={t.assistant.inputPlaceholder}
         autoFocus
-        className="text-lcd-ink placeholder:text-lcd-ink/30 w-full rounded-md border border-lcd-ink/25 bg-transparent px-[1.8vh] py-[1.2vh] text-[clamp(13px,2.2vh,18px)] outline-none focus:border-lcd-ink/60"
+        className="text-lcd-ink placeholder:text-lcd-ink/30 border-lcd-ink/25 focus:border-lcd-ink/60 w-full rounded-md border bg-transparent px-[1.8vh] py-[1.2vh] text-[clamp(13px,2.2vh,18px)] outline-none"
       />
       <div className="flex gap-[1.4vh]">
         <button
           type="button"
           onClick={onDismiss}
-          className="rounded-full border border-lcd-ink/30 px-[2.4vh] py-[1.1vh] text-[clamp(12px,2vh,16px)] text-lcd-ink/80"
+          className="border-lcd-ink/30 text-lcd-ink/80 rounded-full border px-[2.4vh] py-[1.1vh] text-[clamp(12px,2vh,16px)]"
         >
           {t.assistant.cancel}
         </button>
@@ -67,7 +66,7 @@ export default function AssistantOverlay({
       {state.phase === 'recording' && (
         <>
           <Listening />
-          <p className="text-[clamp(13px,2.2vh,18px)] text-lcd-ink/80">
+          <p className="text-lcd-ink/80 text-[clamp(13px,2.2vh,18px)]">
             {t.assistant.recordingPrompt}
           </p>
           <div className="mt-[0.6vh] flex items-center gap-[1.4vh]">
@@ -77,7 +76,7 @@ export default function AssistantOverlay({
               type="button"
               onClick={onDismiss}
               aria-label={t.assistant.cancelRecordingAria}
-              className="flex h-[5vh] w-[5vh] items-center justify-center rounded-full border border-lcd-ink/30 text-lcd-ink/70 active:scale-95"
+              className="border-lcd-ink/30 text-lcd-ink/70 flex h-[5vh] w-[5vh] items-center justify-center rounded-full border active:scale-95"
             >
               <XIcon className="h-[2.4vh] w-[2.4vh]" />
             </button>
@@ -95,14 +94,14 @@ export default function AssistantOverlay({
       {state.phase === 'thinking' && (
         <>
           <Spinner />
-          <p className="text-[clamp(13px,2.2vh,18px)] text-lcd-ink/70">{t.assistant.thinking}</p>
+          <p className="text-lcd-ink/70 text-[clamp(13px,2.2vh,18px)]">{t.assistant.thinking}</p>
         </>
       )}
 
       {state.phase === 'suggestion' && state.suggestion && (
         <>
           {state.suggestion.transcript && (
-            <p className="max-w-[90%] text-[clamp(11px,1.8vh,15px)] text-lcd-ink/45 italic">
+            <p className="text-lcd-ink/45 max-w-[90%] text-[clamp(11px,1.8vh,15px)] italic">
               „{state.suggestion.transcript}“
             </p>
           )}
@@ -130,15 +129,14 @@ export default function AssistantOverlay({
             <button
               type="button"
               onClick={onDismiss}
-              className="rounded-full border border-lcd-ink/30 px-[2.4vh] py-[1.1vh] text-[clamp(12px,2vh,16px)] text-lcd-ink/80 active:scale-95"
+              className="border-lcd-ink/30 text-lcd-ink/80 rounded-full border px-[2.4vh] py-[1.1vh] text-[clamp(12px,2vh,16px)] active:scale-95"
             >
               {t.assistant.discard}
             </button>
             <button
               type="button"
               onClick={() =>
-                state.suggestion &&
-                onConfirm(state.suggestion.mode_id, state.suggestion.temp_c)
+                state.suggestion && onConfirm(state.suggestion.mode_id, state.suggestion.temp_c)
               }
               className="rounded-full bg-red-500 px-[3vh] py-[1.1vh] text-[clamp(12px,2vh,16px)] font-medium text-white hover:bg-red-600 active:scale-95"
             >

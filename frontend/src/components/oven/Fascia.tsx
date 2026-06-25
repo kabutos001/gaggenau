@@ -67,23 +67,23 @@ export default function Fascia({ state, dispatch, overlay }: Props) {
   };
 
   return (
-    <div
-      className="brushed-steel relative flex h-full w-full items-center justify-center overflow-hidden rounded-[18px] p-[1.4vh] shadow-[0_24px_60px_rgba(0,0,0,0.7)]"
-    >
+    <div className="brushed-steel relative flex h-full w-full items-center justify-center overflow-hidden rounded-[18px] p-[1.4vh] shadow-[0_24px_60px_rgba(0,0,0,0.7)]">
       {/* the black glass panel */}
       <div
         className="relative h-full w-full overflow-hidden rounded-lg"
         style={{
           background:
             'radial-gradient(140% 120% at 50% -10%, #1a1d20 0%, var(--color-lcd-glass) 40%, var(--color-lcd-glass-2) 100%)',
-          boxShadow:
-            'inset 0 1px 2px rgba(255,255,255,0.06), inset 0 -16px 40px rgba(0,0,0,0.7)',
+          boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.06), inset 0 -16px 40px rgba(0,0,0,0.7)',
         }}
       >
         <ScreenContent state={state} dispatch={dispatch} />
 
-        {/* the big rotary — sunk into the bottom edge, horizontally centred */}
-        <div className="absolute bottom-[-14%] left-1/2 z-10 h-[78%] -translate-x-1/2">
+        {/* the big rotary — sunk into the bottom edge, horizontally centred.
+            aspect-square lives here so the knob is one element doing the
+            centring math: left:50% + -50% translate stays exact regardless of
+            zoom/DPR/screen width (landscape). */}
+        <div className="absolute bottom-[-14%] left-1/2 z-10 aspect-square h-[78%] -translate-x-1/2">
           <CenterKnob
             angle={knobAngle(state)}
             inner={knobInner(state)}

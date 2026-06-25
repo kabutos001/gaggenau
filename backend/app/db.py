@@ -7,7 +7,7 @@ from .config import settings
 
 
 class Base(DeclarativeBase):
-  pass
+    pass
 
 
 engine = create_engine(settings.database_url, pool_pre_ping=True)
@@ -15,8 +15,8 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
 def get_db() -> Generator[Session, None, None]:
-  db = SessionLocal()
-  try:
-    yield db
-  finally:
-    db.close()
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()

@@ -5,9 +5,16 @@ const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v
 
 export function ovenReducer(state: OvenState, action: Action): OvenState {
   switch (action.type) {
-    case 'ACTIVATE':
-      if (state.screen === 'standby') return { ...state, screen: 'operating' };
-      return state;
+    case 'ACTIVATE': {
+      // Pressing the knob in stand-by lights the oven at the current mode's
+      // default temperature — same lit state as turning the dial. Without
+      // setting `on: true` here, a follow-up press could not cycle the mode
+      // (CYCLE_MODE bails when the oven is off), so the program change only
+      // worked after first turning the dial.
+      if (state.screen !== 'standby') return state;
+      const temp = clamp(MODES[state.modeIndex].temp, TEMP_MIN, TEMP_MAX);
+      return { ...state, screen: 'operating', on: true, temp, heating: temp > state.currentTemp };
+    }
 
     case 'SET_TEMP': {
       const temp = clamp(action.value, TEMP_MIN, TEMP_MAX);
@@ -88,7 +95,8 @@ export function ovenReducer(state: OvenState, action: Action): OvenState {
 
     case 'TOGGLE_LOCK': {
       if (!state.childLockAvailable) return state;
-      if (state.screen === 'locked') return { ...state, screen: state.on ? 'operating' : 'standby' };
+      if (state.screen === 'locked')
+        return { ...state, screen: state.on ? 'operating' : 'standby' };
       return { ...state, screen: 'locked' };
     }
 

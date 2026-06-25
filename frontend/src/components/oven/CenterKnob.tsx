@@ -1,5 +1,23 @@
 import { useLayoutEffect, useRef } from 'react';
 
+// Renders the well's inner token. For an "n/m" counter the slash carries a wide
+// glyph side-bearing, so a plain string leaves an uneven gap after it; we split
+// on the slash and pull it toward both numbers with negative margins so it sits
+// snug between them. The right number is always a single "1", which reads as
+// extra space, so we pull the slash in twice as hard on that side to balance it
+// by eye. Non-"n/m" content renders untouched.
+function KnobInner({ value }: { value: React.ReactNode }) {
+  if (typeof value !== 'string' || !value.includes('/')) return <>{value}</>;
+  const [left, right] = value.split('/');
+  return (
+    <>
+      {left}
+      <span className="ml-[-0.2em] mr-[-0.4em]">/</span>
+      {right}
+    </>
+  );
+}
+
 interface Props {
   /** Pointer angle in degrees (0 = top), reflecting the current value. */
   angle: number;
@@ -34,9 +52,7 @@ const snapAngle = (deg: number) => {
   let a = ((deg + 180) % 360) - 180; // normalise to (-180, 180]
   if (a < -180) a += 360;
   a = Math.max(SWEEP_MIN, Math.min(SWEEP_MAX, a)); // clamp into the sweep
-  return DETENT_ANGLES.reduce((best, d) =>
-    Math.abs(d - a) < Math.abs(best - a) ? d : best
-  );
+  return DETENT_ANGLES.reduce((best, d) => (Math.abs(d - a) < Math.abs(best - a) ? d : best));
 };
 
 // The single large chrome rotary from the reference photos. It sits low and
@@ -136,7 +152,7 @@ export default function CenterKnob({ angle, onStep, onPress, inner }: Props) {
   };
 
   return (
-    <div className="relative aspect-square h-full select-none">
+    <div className="relative h-full w-full select-none">
       <div
         ref={ringRef}
         className="knob-ring absolute inset-0 cursor-grab touch-none rounded-full active:cursor-grabbing"
@@ -161,7 +177,7 @@ export default function CenterKnob({ angle, onStep, onPress, inner }: Props) {
             className="pointer-events-none absolute inset-0"
             style={{ transform: `rotate(${d}deg)`, transformOrigin: '50% 50%' }}
           >
-            <span className="absolute left-1/2 top-[3%] h-[13%] w-0.75 -translate-x-1/2 rounded-full bg-black/30" />
+            <span className="absolute top-[3%] left-1/2 h-[13%] w-0.75 -translate-x-1/2 rounded-full bg-black/30" />
           </div>
         ))}
 
@@ -173,13 +189,17 @@ export default function CenterKnob({ angle, onStep, onPress, inner }: Props) {
           className="pointer-events-none absolute inset-0 transition-transform duration-150"
           style={{ transformOrigin: '50% 50%' }}
         >
-          <span className="absolute left-1/2 top-[3%] h-[13%] w-0.75 -translate-x-1/2 rounded-full bg-white/80 shadow-[0_0_4px_rgba(255,255,255,0.6)]" />
+          <span className="absolute top-[3%] left-1/2 h-[13%] w-0.75 -translate-x-1/2 rounded-full bg-white/80 shadow-[0_0_4px_rgba(255,255,255,0.6)]" />
         </div>
-
-        {/* dark glossy well */}
-        <div className="knob-well pointer-events-none absolute inset-[22%] flex items-center justify-center rounded-full">
+        {/* dark glossy well — a query container so the inner text scales with
+            the well's own size rather than vh. The text sits inside the well's
+            inscribed square (~70% of the round well's width) and is capped to
+            it, so it fills the dark centre without ever bleeding onto the rim. */}
+        <div className="knob-well @container pointer-events-none absolute inset-[22%] flex items-center justify-center rounded-full">
           {inner && (
-            <span className="text-lcd-ink/55 seg text-[clamp(18px,4.4vh,30px)]">{inner}</span>
+            <span className="text-lcd-ink/55 seg flex max-w-[70cqw] items-center justify-center text-[26cqw] leading-none whitespace-nowrap">
+              <KnobInner value={inner} />
+            </span>
           )}
         </div>
       </div>

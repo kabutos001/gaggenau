@@ -1,10 +1,4 @@
-import {
-  MODES,
-  SETTING_FUNCTIONS,
-  TEMP_MAX,
-  TEMP_MIN,
-  TIMER_FUNCTIONS,
-} from './constants';
+import { MODES, SETTING_FUNCTIONS, TEMP_MAX, TEMP_MIN, TIMER_FUNCTIONS } from './constants';
 import type { ButtonConfig, ButtonSlot, OvenState } from './types';
 
 export function formatClock(state: OvenState): string {
@@ -77,7 +71,12 @@ export function buttonsFor(state: OvenState): Record<ButtonSlot, ButtonConfig> {
 
   switch (state.screen) {
     case 'standby':
-      return { topLeft: blank, bottomLeft: { icon: 'info', action: { type: 'OPEN_INFO' } }, topRight: blank, bottomRight: { icon: 'timer', action: { type: 'OPEN_TIMER' } } };
+      return {
+        topLeft: blank,
+        bottomLeft: { icon: 'info', action: { type: 'OPEN_INFO' } },
+        topRight: blank,
+        bottomRight: { icon: 'timer', action: { type: 'OPEN_TIMER' } },
+      };
 
     case 'operating':
       return {
@@ -88,7 +87,12 @@ export function buttonsFor(state: OvenState): Record<ButtonSlot, ButtonConfig> {
       };
 
     case 'info':
-      return { topLeft: blank, bottomLeft: { icon: 'confirm', action: { type: 'BACK' } }, topRight: blank, bottomRight: blank };
+      return {
+        topLeft: blank,
+        bottomLeft: { icon: 'confirm', action: { type: 'BACK' } },
+        topRight: blank,
+        bottomRight: blank,
+      };
 
     case 'timer': {
       // Function selection is done by tapping the menu strip; the four buttons
@@ -98,7 +102,10 @@ export function buttonsFor(state: OvenState): Record<ButtonSlot, ButtonConfig> {
         return {
           topLeft: blank,
           bottomLeft: { icon: 'confirm', action: { type: 'BACK' } },
-          topRight: { icon: state.stopwatchRunning ? 'pause' : 'play', action: { type: 'STOPWATCH_TOGGLE' } },
+          topRight: {
+            icon: state.stopwatchRunning ? 'pause' : 'play',
+            action: { type: 'STOPWATCH_TOGGLE' },
+          },
           bottomRight: { icon: 'clear', action: { type: 'TIMER_CLEAR' } },
         };
       }

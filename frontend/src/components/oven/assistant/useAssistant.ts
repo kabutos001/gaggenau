@@ -4,12 +4,7 @@ import { useTranslations } from '../../../i18n/context';
 import { askAssistant, streamAssistant, type CookSuggestion } from './api';
 import { startPcmCapture, type PcmCapture } from './audio';
 
-export type AssistantPhase =
-  | 'idle'
-  | 'recording'
-  | 'thinking'
-  | 'suggestion'
-  | 'error';
+export type AssistantPhase = 'idle' | 'recording' | 'thinking' | 'suggestion' | 'error';
 
 export interface AssistantState {
   phase: AssistantPhase;

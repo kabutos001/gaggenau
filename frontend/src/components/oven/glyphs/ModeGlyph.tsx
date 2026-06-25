@@ -12,7 +12,9 @@ interface Props {
 const STROKE = 'currentColor';
 
 function Bar({ y }: { y: number }) {
-  return <line x1="7" y1={y} x2="29" y2={y} stroke={STROKE} strokeWidth="2.4" strokeLinecap="round" />;
+  return (
+    <line x1="7" y1={y} x2="29" y2={y} stroke={STROKE} strokeWidth="2.4" strokeLinecap="round" />
+  );
 }
 
 function Fan() {
